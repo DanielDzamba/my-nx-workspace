@@ -47,5 +47,13 @@
       "style": "css"
     }
   },
-  "nxCloudId": "696c0e24845fdd13c7f76901"
+  "nxCloudId": "696c0e24845fdd13c7f76901",
+  "plugins": [
+    {
+      "plugin": "@nx/playwright/plugin",
+      "options": {
+        "targetName": "e2e"
+      }
+    }
+  ]
 }
