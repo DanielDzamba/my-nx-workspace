@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "github-build": "npx nx build angular-demo --base-href /my-nx-workspace/"
+    "github-build": "npx nx build angular-demo --prod --base-href /my-nx-workspace/",
+    "github-deploy": "npx angular-cli-ghpages --dir=dist/apps/angular-demo/browser --no-silent"
   },
   "private": true,
   "dependencies": {
