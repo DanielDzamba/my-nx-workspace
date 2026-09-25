@@ -3,6 +3,8 @@
     "nrwl.angular-console",
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
-    "ms-playwright.playwright"
+    "ms-playwright.playwright",
+    "vscjava.vscode-java-pack",
+    "vmware.vscode-boot-dev-pack"
   ]
 }
