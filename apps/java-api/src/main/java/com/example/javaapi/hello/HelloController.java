@@ -13,7 +13,7 @@ public class HelloController {
 
 	@GetMapping
 	public Map<String, String> hello(@RequestParam(defaultValue = "world") String name) {
-		return Map.of("message", "Hello, " + name + "!");
+		return Map.of("message", "Hello, " + name + "!!!");
 	}
 
 }
