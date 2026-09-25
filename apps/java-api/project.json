@@ -1,0 +1,54 @@
+{
+  "name": "java-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/java-api/src/main/java",
+  "tags": ["type:app", "lang:java"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "parallelism": false,
+      "inputs": [
+        "{projectRoot}/pom.xml",
+        "{projectRoot}/src/main/**/*",
+        "{projectRoot}/.mvn/**/*"
+      ],
+      "outputs": ["{projectRoot}/target"],
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs -B package -DskipTests",
+        "cwd": "apps/java-api"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs spring-boot:run",
+        "cwd": "apps/java-api"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "parallelism": false,
+      "inputs": [
+        "{projectRoot}/pom.xml",
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/.mvn/**/*"
+      ],
+      "outputs": ["{projectRoot}/target/surefire-reports"],
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs -B test",
+        "cwd": "apps/java-api"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs -B clean",
+        "cwd": "apps/java-api"
+      }
+    }
+  }
+}
