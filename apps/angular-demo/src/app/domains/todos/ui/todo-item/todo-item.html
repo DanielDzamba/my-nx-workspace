@@ -1,0 +1,27 @@
+<input
+  type="checkbox"
+  [checked]="todo().completed"
+  (change)="toggleCompleted.emit()"
+  [attr.aria-label]="'Hotovo: ' + todo().title"
+/>
+
+@if (editing()) {
+<input
+  class="edit-input"
+  [(ngModel)]="draft"
+  maxlength="200"
+  aria-label="Názov úlohy"
+  (keydown.enter)="save()"
+  (keydown.escape)="editCancel.emit()"
+/>
+<button type="button" (click)="save()">Uložiť</button>
+<button type="button" class="secondary" (click)="editCancel.emit()">
+  Zrušiť
+</button>
+} @else {
+<span class="title" (dblclick)="editStart.emit()">{{ todo().title }}</span>
+<button type="button" class="secondary" (click)="editStart.emit()">
+  Upraviť
+</button>
+<button type="button" class="danger" (click)="remove.emit()">Zmazať</button>
+}

@@ -4,17 +4,20 @@
   "license": "MIT",
   "scripts": {
     "start": "npx nx serve angular-demo",
-    "github-build": "npx nx build angular-demo --prod --base-href /my-nx-workspace/",
-    "github-deploy": "npx angular-cli-ghpages --dir=dist/apps/angular-demo/browser --no-silent"
+    "github-build": "npx nx build angular-demo --configuration=github-pages",
+    "check": "node tools/scripts/ci-checks.mjs",
+    "check:full": "node tools/scripts/ci-checks.mjs --full"
   },
   "private": true,
   "dependencies": {
+    "@angular-architects/ngrx-toolkit": "~20.7.0",
     "@angular/common": "~20.1.0",
     "@angular/compiler": "~20.1.0",
     "@angular/core": "~20.1.0",
     "@angular/forms": "~20.1.0",
     "@angular/platform-browser": "~20.1.0",
     "@angular/router": "~20.1.0",
+    "@ngrx/signals": "~20.1.0",
     "rxjs": "~7.8.0",
     "zone.js": "~0.15.0"
   },
@@ -39,6 +42,8 @@
     "@nx/workspace": "21.4.0",
     "@playwright/test": "^1.36.0",
     "@schematics/angular": "~20.1.0",
+    "@softarc/eslint-plugin-sheriff": "^0.19.6",
+    "@softarc/sheriff-core": "^0.19.6",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",

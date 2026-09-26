@@ -1,0 +1,6 @@
+CREATE TABLE todo (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title      VARCHAR(200) NOT NULL,
+    completed  BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+);

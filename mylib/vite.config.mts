@@ -23,6 +23,16 @@ export default defineConfig(() => ({
     coverage: {
       reportsDirectory: '../coverage/mylib',
       provider: 'v8' as const,
+      // Always on, so a local `nx test` fails on the same thresholds as CI.
+      enabled: true,
+      include: ['src/**/*.ts'],
+      exclude: ['src/main.ts', 'src/test-setup.ts', 'src/**/*.spec.ts'],
+      thresholds: {
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
+      },
     },
   },
 }));

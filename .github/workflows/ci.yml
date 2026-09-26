@@ -10,7 +10,14 @@ permissions:
   actions: read
   contents: read
 
+# A new push to the same PR cancels the run that is still going
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Job name `main` is the required status check in the main branch ruleset; rename both together.
+  # Frontend steps mirror tools/scripts/ci-checks.mjs --full; keep them in sync.
   main:
     runs-on: ubuntu-latest
     steps:
@@ -40,9 +47,33 @@ jobs:
           java-version: 21
           cache: maven
 
+      # Sets NX_BASE / NX_HEAD so `nx affected` only runs projects the PR touches
+      - uses: nrwl/nx-set-shas@v4
+
+      - run: npx nx format:check
+
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: npx nx-cloud record -- echo Hello World
-      - run: npx nx run-many -t lint test build
+      # test enforces the coverage thresholds from each project's vite.config.mts
+      - run: npx nx affected -t lint typecheck test build
+
+      # E2E runs against a mocked API (see apps/angular-demo/e2e), so no backend or database is needed
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npx nx affected -t e2e -- --project=chromium
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: dist/.playwright
+          if-no-files-found: ignore
+
+      # Report-only: known vulnerabilities in dependencies do not block the merge
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: npx nx fix-ci
         if: always()

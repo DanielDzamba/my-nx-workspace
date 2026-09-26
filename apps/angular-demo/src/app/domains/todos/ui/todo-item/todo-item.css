@@ -1,0 +1,37 @@
+:host {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+:host(.completed) .title {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem;
+  font: inherit;
+}
+
+button {
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: none;
+}
+
+button.danger {
+  color: #b00020;
+  background: none;
+}

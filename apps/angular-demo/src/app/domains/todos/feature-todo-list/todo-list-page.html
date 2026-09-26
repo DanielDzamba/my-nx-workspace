@@ -1,0 +1,34 @@
+<section class="todo-app">
+  <h1>TODO list</h1>
+
+  <app-todo-add-form [(title)]="newTitle" (add)="add($event)" />
+
+  @if (error(); as message) {
+  <p class="error" role="alert">{{ message }}</p>
+  } @if (store.todosIsLoading()) {
+  <p class="muted">Načítavam…</p>
+  } @else {
+  <ul class="todo-list">
+    @for (todo of store.todos(); track todo.id) {
+    <li>
+      <app-todo-item
+        [todo]="todo"
+        [editing]="editingId() === todo.id"
+        (toggleCompleted)="toggle(todo)"
+        (remove)="remove(todo)"
+        (editStart)="editingId.set(todo.id)"
+        (editCancel)="editingId.set(null)"
+        (rename)="rename(todo, $event)"
+      />
+    </li>
+    } @empty {
+    <li class="muted">Zatiaľ žiadne úlohy.</li>
+    }
+  </ul>
+
+  @if (store.todos().length) {
+  <p class="muted">
+    Zostáva: {{ store.remaining() }} z {{ store.todos().length }}
+  </p>
+  } }
+</section>

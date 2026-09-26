@@ -1,0 +1,18 @@
+form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem;
+  font: inherit;
+}
+
+button {
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}
