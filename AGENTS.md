@@ -32,9 +32,11 @@ These hold for all frontend code (`apps/angular-demo`, `mylib`). Details and rat
 
 ## Verify
 
-`node tools/scripts/ci-checks.mjs` runs lint (incl. Sheriff) and unit tests for the frontend,
-`--full` adds the production build. A Claude Code Stop hook runs the fast checks automatically when
-frontend files changed and feeds failures back.
+`node tools/scripts/ci-checks.mjs` runs Prettier check, lint (incl. Sheriff), typecheck (incl. specs)
+and unit tests with coverage thresholds (80%, in each `vite.config.mts`) for the frontend; `--full`
+adds the production build and Playwright e2e (Chromium, mocked API). A Claude Code Stop hook runs the
+fast checks automatically when frontend files changed and feeds failures back. CI
+(`.github/workflows/ci.yml`) runs the same checks on `nx affected` and must pass before merging to `main`.
 
 ## Angular tooling
 

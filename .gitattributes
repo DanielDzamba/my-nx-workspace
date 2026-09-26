@@ -1,0 +1,6 @@
+# Prettier expects LF; keep working copies LF on Windows too (core.autocrlf would convert to CRLF).
+* text=auto eol=lf
+
+# Maven wrapper script for Windows must stay CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf

@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // Deterministic frontend checks shared by the Claude Code Stop hook and humans.
 //
-//   node tools/scripts/ci-checks.mjs          fast: lint (incl. Sheriff boundaries) + unit tests
-//   node tools/scripts/ci-checks.mjs --full   fast + production build
+//   node tools/scripts/ci-checks.mjs          fast: format, lint (incl. Sheriff boundaries), typecheck,
+//                                             unit tests with coverage thresholds
+//   node tools/scripts/ci-checks.mjs --full   fast + production build + Playwright e2e (Chromium)
+//
+// Keep in sync with .github/workflows/ci.yml.
 //
 // runChecks() never throws; it returns { status: 'success' } or { status: 'error', message },
 // so any agent hook can translate the result into its own protocol.
@@ -13,12 +16,20 @@ const PROJECTS = 'angular-demo,mylib';
 const MAX_MESSAGE_CHARS = 8000;
 const ANSI_ESCAPE = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g');
 
-const nx = (target) =>
-  `npx nx run-many -t ${target} -p ${PROJECTS} --outputStyle=static`;
+const nx = (target, args = '') =>
+  `npx nx run-many -t ${target} -p ${PROJECTS} --outputStyle=static ${args}`.trim();
 
 // Separate steps keep the failure output focused on the failing target.
-const fastSteps = [nx('lint'), nx('test')];
-const fullOnlySteps = [nx('build')];
+const fastSteps = [
+  `npx nx format:check --projects=${PROJECTS}`,
+  nx('lint'),
+  nx('typecheck'),
+  nx('test'),
+];
+const fullOnlySteps = [
+  nx('build'),
+  'npx nx e2e angular-demo --outputStyle=static -- --project=chromium',
+];
 
 export function runChecks({ full = false, capture = false } = {}) {
   const steps = full ? [...fastSteps, ...fullOnlySteps] : fastSteps;

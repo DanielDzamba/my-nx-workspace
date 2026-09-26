@@ -8,13 +8,25 @@
   "targets": {
     "test": {
       "executor": "@nx/vite:test",
-      "outputs": ["{options.reportsDirectory}"],
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "reportsDirectory": "../coverage/mylib"
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint"
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production"],
+      "options": {
+        "commands": [
+          "tsc -p {projectRoot}/tsconfig.lib.json --noEmit",
+          "tsc -p {projectRoot}/tsconfig.spec.json --noEmit"
+        ],
+        "parallel": false
+      }
     }
   }
 }
