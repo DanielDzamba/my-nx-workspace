@@ -22,7 +22,9 @@ public class CorsConfig implements WebMvcConfigurer {
 	public void addCorsMappings(CorsRegistry registry) {
 		registry.addMapping("/api/**")
 			.allowedOrigins(this.allowedOrigins)
-			.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE");
+			.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+			// Browsers cache the preflight (OPTIONS) response; Chrome caps this at 2 hours
+			.maxAge(3600);
 	}
 
 }
