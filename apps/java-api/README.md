@@ -35,7 +35,19 @@ docker compose --profile full up --build   # PostgreSQL + API container on :8080
 docker build -t java-api .                 # image only
 ```
 
-## Deployment settings
+## Deployment
+
+| Part       | Host                                                                          | Config                               |
+| ---------- | ----------------------------------------------------------------------------- | ------------------------------------ |
+| Frontend   | GitHub Pages: https://danieldzamba.github.io/my-nx-workspace/                 | `.github/workflows/deploy-pages.yml` |
+| java-api   | Render (free web service, Docker): https://danieldzamba-java-api.onrender.com | `render.yaml` (Blueprint)            |
+| PostgreSQL | Neon (free, AWS eu-central-1)                                                 | env vars in the Render dashboard     |
+
+- Render deploys a commit on `main` once CI has passed on it (`autoDeployTrigger: checksPass`).
+- The free service sleeps after 15 minutes without traffic; the first request then waits for the app to start (up to about a minute). Neon suspends the database after 5 idle minutes and resumes it on the next connection.
+- Neon shows a connection string like `postgresql://<user>:<password>@<host>/<db>?sslmode=require`. Split it for Spring: `SPRING_DATASOURCE_URL=jdbc:postgresql://<host>/<db>?sslmode=require` plus `_USERNAME` and `_PASSWORD`. Use the direct host (without `-pooler`), because Flyway needs a session-level connection.
+
+### Settings
 
 | Env var                                             | Purpose                                                   |
 | --------------------------------------------------- | --------------------------------------------------------- |
