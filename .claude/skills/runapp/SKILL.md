@@ -79,7 +79,7 @@ Match `Application bundle generation complete` instead, and strip the codes with
 Success looks like:
 - java-api: Flyway lines (`Successfully validated N migrations`, `Schema "public" is up to date` or `Successfully applied ...`), then `Tomcat started on port 8080` and `Started JavaApiApplication in X seconds`.
 - angular-demo: `Application bundle generation complete`, then `Local: http://localhost:4200/`, with no `[ERROR]` / `✘` build errors.
-- A `Browserslist: caniuse-lite is ... old` warning and an `nx-welcome.ts exceeded maximum budget` warning are harmless.
+- A `Browserslist: caniuse-lite is ... old` warning is harmless.
 
 ## 4. Smoke-test
 

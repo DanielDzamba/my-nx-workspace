@@ -1,13 +1,12 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { Mylib } from '@mylib';
 
 @Component({
-  imports: [RouterModule, Mylib],
+  imports: [RouterOutlet, Mylib],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App {
-  protected title = 'angular-demo';
-}
+export class App {}

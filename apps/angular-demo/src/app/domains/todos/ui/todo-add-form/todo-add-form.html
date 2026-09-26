@@ -1,0 +1,11 @@
+<form (ngSubmit)="submit()">
+  <input
+    name="title"
+    [(ngModel)]="title"
+    placeholder="Čo treba urobiť?"
+    maxlength="200"
+    autocomplete="off"
+    aria-label="Nová úloha"
+  />
+  <button type="submit" [disabled]="!title().trim()">Pridať</button>
+</form>
