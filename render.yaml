@@ -1,6 +1,6 @@
 # Render Blueprint (https://render.com/docs/blueprint-spec) for java-api.
 # The frontend is on GitHub Pages (.github/workflows/deploy-pages.yml), the database on Neon.
-# Paths are relative to the repo root; rootDir only limits which changes trigger a deploy.
+# With rootDir set, dockerfilePath and dockerContext are resolved relative to it.
 services:
   - type: web
     # Also the subdomain: https://danieldzamba-java-api.onrender.com (apiUrl in environment.ts)
@@ -10,8 +10,8 @@ services:
     # Same region as the Neon database (AWS eu-central-1)
     region: frankfurt
     rootDir: apps/java-api
-    dockerfilePath: ./apps/java-api/Dockerfile
-    dockerContext: ./apps/java-api
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     # Readiness does not include the database, so a sleeping Neon compute does not fail the deploy
     healthCheckPath: /actuator/health/readiness
     # Deploy a commit on main only after CI has passed on it
