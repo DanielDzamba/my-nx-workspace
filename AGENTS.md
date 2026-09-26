@@ -2,11 +2,11 @@
 
 Nx monorepo with two apps:
 
-| Project | Path | Stack |
-|---|---|---|
+| Project        | Path                | Stack                                                       |
+| -------------- | ------------------- | ----------------------------------------------------------- |
 | `angular-demo` | `apps/angular-demo` | Angular 20 (standalone, signals, NgRx Signal Store), Vitest |
-| `java-api` | `apps/java-api` | Spring Boot 4 / Java 21, PostgreSQL |
-| `mylib` | `mylib` | Angular UI library, imported as `@mylib` |
+| `java-api`     | `apps/java-api`     | Spring Boot 4 / Java 21, PostgreSQL                         |
+| `mylib`        | `mylib`             | Angular UI library, imported as `@mylib`                    |
 
 Run tasks through Nx: `npx nx <target> <project>` (`lint`, `test`, `build`, `serve`).
 Skills in `.claude/skills` cover running the stack (`runapp`, `run-java-api`) and PRs (`pr`).

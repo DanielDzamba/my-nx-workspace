@@ -27,12 +27,12 @@ Only create the layers a domain needs. Current reference domain: `todos`.
 
 Layers only depend **downwards**; domains do not depend on each other.
 
-| From \ may import | feature | ui | data | util |
-|---|---|---|---|---|
-| **feature** | – | ✓ | ✓ | ✓ |
-| **ui** | – | – | types only | ✓ |
-| **data** | – | – | – | ✓ |
-| **util** | – | – | – | – |
+| From \ may import | feature | ui  | data       | util |
+| ----------------- | ------- | --- | ---------- | ---- |
+| **feature**       | –       | ✓   | ✓          | ✓    |
+| **ui**            | –       | –   | types only | ✓    |
+| **data**          | –       | –   | –          | ✓    |
+| **util**          | –       | –   | –          | –    |
 
 - Any layer of a domain may import the same or lower layer of `shared` (and `@mylib`).
 - A domain never imports another domain. If two domains need the same code, it moves to `shared`

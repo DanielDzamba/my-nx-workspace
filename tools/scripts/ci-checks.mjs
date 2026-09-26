@@ -21,7 +21,7 @@ const nx = (target, args = '') =>
 
 // Separate steps keep the failure output focused on the failing target.
 const fastSteps = [
-  `npx nx format:check --projects=${PROJECTS}`,
+  'npx nx format:check',
   nx('lint'),
   nx('typecheck'),
   nx('test'),

@@ -4,3 +4,6 @@
 /.nx/cache
 /.nx/workspace-data
 .angular
+
+# Vendored from github.com/angular/skills; keep identical to upstream
+/.claude/skills/angular-developer

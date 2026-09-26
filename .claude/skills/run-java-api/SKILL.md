@@ -52,6 +52,7 @@ curl -s -w "\nHTTP %{http_code}\n" http://localhost:8080/actuator/health
 ```
 
 Expected results:
+
 - `/api/hello` returns `{"message":"Hello, world..."}` with HTTP 200.
 - `/actuator/health` returns JSON containing `"status":"UP"` with HTTP 200.
 
@@ -74,11 +75,11 @@ If the Java process outlives it and port 8080 stays taken, kill it:
 
 ## Other targets
 
-| Command | What it does |
-|---|---|
-| `npx nx build java-api` | `mvnw -B package -DskipTests` produces `apps/java-api/target/*.jar` |
-| `npx nx test java-api` | `mvnw -B test`; `JavaApiApplicationTests` uses a Testcontainers PostgreSQL and is skipped when Docker is unavailable |
-| `npx nx clean java-api` | `mvnw -B clean` |
+| Command                 | What it does                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `npx nx build java-api` | `mvnw -B package -DskipTests` produces `apps/java-api/target/*.jar`                                                  |
+| `npx nx test java-api`  | `mvnw -B test`; `JavaApiApplicationTests` uses a Testcontainers PostgreSQL and is skipped when Docker is unavailable |
+| `npx nx clean java-api` | `mvnw -B clean`                                                                                                      |
 
 To run the packaged jar directly: `java -jar apps/java-api/target/java-api-*.jar`.
 

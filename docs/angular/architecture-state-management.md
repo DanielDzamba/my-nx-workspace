@@ -23,12 +23,12 @@ Reference: `apps/angular-demo/src/app/domains/todos/data/todo-store.ts`.
 
 ## Building blocks
 
-| Need | Use |
-|---|---|
-| Load data (reactive to params) | `withResource(store => ({ name: rxResource({ stream: ... }) }))` — gives `nameValue`, `nameIsLoading`, `nameError`, `nameStatus` |
-| Change data on the server | `withMutations(store => ({ name: rxMutation({ operation, onSuccess }) }))` — gives `name(param)` returning `Promise<MutationResult>` plus `nameIsPending`, `nameError`, `nameStatus` |
-| Apply a server response locally | `patchState(store, { nameValue: ... })` in the mutation's `onSuccess` |
-| Derived values | `withComputed` |
+| Need                            | Use                                                                                                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Load data (reactive to params)  | `withResource(store => ({ name: rxResource({ stream: ... }) }))` — gives `nameValue`, `nameIsLoading`, `nameError`, `nameStatus`                                                     |
+| Change data on the server       | `withMutations(store => ({ name: rxMutation({ operation, onSuccess }) }))` — gives `name(param)` returning `Promise<MutationResult>` plus `nameIsPending`, `nameError`, `nameStatus` |
+| Apply a server response locally | `patchState(store, { nameValue: ... })` in the mutation's `onSuccess`                                                                                                                |
+| Derived values                  | `withComputed`                                                                                                                                                                       |
 
 Prefer named resources (`{ todos: rxResource(...) }`) so signals are self-describing.
 `rxMutation` uses `concatOp` by default (calls are queued); choose `switchOp` / `exhaustOp` /
@@ -48,8 +48,12 @@ A smart component awaits the mutation and decides what the user sees:
 
 ```ts
 const result = await this.store.addTodo(title);
-if (result.status === 'success') { this.newTitle.set(''); }
-if (result.status === 'error') { this.error.set('Úlohu sa nepodarilo pridať.'); }
+if (result.status === 'success') {
+  this.newTitle.set('');
+}
+if (result.status === 'error') {
+  this.error.set('Úlohu sa nepodarilo pridať.');
+}
 ```
 
 User-facing texts belong to the component, not the store.

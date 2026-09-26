@@ -8,11 +8,11 @@ description: Launch the whole stack of this Nx workspace — PostgreSQL in Docke
 Local development follows the "infrastructure in Docker, apps native" pattern:
 only the database runs in a container, and both apps run natively for fast reloads and debugging.
 
-| Part | Path | Command | URL |
-|---|---|---|---|
-| PostgreSQL 17 (Docker) | `apps/java-api/compose.yaml` | `docker compose up -d --wait` | `localhost:5432`, db/user/password `java_api` |
-| java-api (Spring Boot, Java 21) | `apps/java-api` | `npx nx serve java-api` | http://localhost:8080 |
-| angular-demo (Angular dev server) | `apps/angular-demo` | `npx nx serve angular-demo` | http://localhost:4200 |
+| Part                              | Path                         | Command                       | URL                                           |
+| --------------------------------- | ---------------------------- | ----------------------------- | --------------------------------------------- |
+| PostgreSQL 17 (Docker)            | `apps/java-api/compose.yaml` | `docker compose up -d --wait` | `localhost:5432`, db/user/password `java_api` |
+| java-api (Spring Boot, Java 21)   | `apps/java-api`              | `npx nx serve java-api`       | http://localhost:8080                         |
+| angular-demo (Angular dev server) | `apps/angular-demo`          | `npx nx serve angular-demo`   | http://localhost:4200                         |
 
 The Angular dev server proxies `/api/**` to `http://localhost:8080` (`apps/angular-demo/proxy.conf.json`).
 The frontend therefore calls relative `/api/...` URLs and needs no CORS locally.
@@ -77,6 +77,7 @@ The Angular log is full of ANSI color codes, so `Local:` / `localhost:4200` are 
 Match `Application bundle generation complete` instead, and strip the codes with `sed` before reading.
 
 Success looks like:
+
 - java-api: Flyway lines (`Successfully validated N migrations`, `Schema "public" is up to date` or `Successfully applied ...`), then `Tomcat started on port 8080` and `Started JavaApiApplication in X seconds`.
 - angular-demo: `Application bundle generation complete`, then `Local: http://localhost:4200/`, with no `[ERROR]` / `✘` build errors.
 - A `Browserslist: caniuse-lite is ... old` warning is harmless.
@@ -91,6 +92,7 @@ curl -s -w "\nHTTP %{http_code}\n" http://localhost:4200/api/hello
 ```
 
 Expected:
+
 - `/api/hello` → `{"message":"Hello, world!"}`, HTTP 200.
 - `/actuator/health` → JSON with `"status":"UP"`, HTTP 200. The database is part of this check: if PostgreSQL is down, it reports `DOWN` / HTTP 503.
 - `http://localhost:4200/` → HTTP 200 (the HTML shell containing `<app-root>`).

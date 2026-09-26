@@ -18,11 +18,11 @@ npx nx clean java-api
 
 ## Database
 
-| Environment | Where PostgreSQL comes from |
-|---|---|
-| Local run | `compose.yaml`, started automatically by `spring-boot-docker-compose` and left running (`docker compose down` stops it) |
-| Tests | Testcontainers (`TestcontainersConfiguration`, `@ServiceConnection`) |
-| Deployed | `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` env vars |
+| Environment | Where PostgreSQL comes from                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Local run   | `compose.yaml`, started automatically by `spring-boot-docker-compose` and left running (`docker compose down` stops it) |
+| Tests       | Testcontainers (`TestcontainersConfiguration`, `@ServiceConnection`)                                                    |
+| Deployed    | `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` env vars                            |
 
 - Schema changes are Flyway migrations in `src/main/resources/db/migration` (`V1__create_todo.sql`, `V2__...`). Hibernate only validates the schema (`ddl-auto=validate`).
 - Never edit a migration that has already run; add a new one.
@@ -37,11 +37,11 @@ docker build -t java-api .                 # image only
 
 ## Deployment settings
 
-| Env var | Purpose |
-|---|---|
-| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | database connection |
-| `APP_CORS_ALLOWED_ORIGINS` | frontend origin(s), e.g. `https://danieldzamba.github.io` |
-| `PORT` | HTTP port if the host injects one (default 8080) |
+| Env var                                             | Purpose                                                   |
+| --------------------------------------------------- | --------------------------------------------------------- |
+| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | database connection                                       |
+| `APP_CORS_ALLOWED_ORIGINS`                          | frontend origin(s), e.g. `https://danieldzamba.github.io` |
+| `PORT`                                              | HTTP port if the host injects one (default 8080)          |
 
 ## Endpoints
 
