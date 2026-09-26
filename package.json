@@ -4,8 +4,7 @@
   "license": "MIT",
   "scripts": {
     "start": "npx nx serve angular-demo",
-    "github-build": "npx nx build angular-demo --prod --base-href /my-nx-workspace/",
-    "github-deploy": "npx angular-cli-ghpages --dir=dist/apps/angular-demo/browser --no-silent"
+    "github-build": "npx nx build angular-demo --configuration=github-pages"
   },
   "private": true,
   "dependencies": {

@@ -11,6 +11,8 @@ Nx targets call `tools/scripts/mvnw.mjs`, which picks `mvnw.cmd` on Windows and 
 ## Prerequisites
 
 - JDK 21 on `PATH` (`java -version` should print 21.x). Maven itself is not needed; the wrapper downloads it.
+- Docker running (`docker info` succeeds). The app needs PostgreSQL: `spring-boot-docker-compose` starts the `postgres` service from `apps/java-api/compose.yaml` on startup and wires the datasource to it.
+  This only works when the working directory is `apps/java-api`, which `nx serve` guarantees.
 - `node_modules` installed at the repo root (`npm install`) so `npx nx` works.
 - Port 8080 free. If it is taken, find the owner first (Windows: `netstat -ano | findstr :8080`).
 
@@ -39,6 +41,7 @@ grep -E "Started|Tomcat started|FAILED|FAILURE|ERROR" "$LOG" | tail -20
 ```
 
 On success the log contains `Tomcat started on port 8080` and `Started JavaApiApplication in X seconds`.
+Without Docker, startup fails early with a docker-compose error.
 
 ## 3. Drive it
 
@@ -74,7 +77,7 @@ If the Java process outlives it and port 8080 stays taken, kill it:
 | Command | What it does |
 |---|---|
 | `npx nx build java-api` | `mvnw -B package -DskipTests` produces `apps/java-api/target/*.jar` |
-| `npx nx test java-api` | `mvnw -B test` |
+| `npx nx test java-api` | `mvnw -B test`; `JavaApiApplicationTests` uses a Testcontainers PostgreSQL and is skipped when Docker is unavailable |
 | `npx nx clean java-api` | `mvnw -B clean` |
 
 To run the packaged jar directly: `java -jar apps/java-api/target/java-api-*.jar`.
@@ -83,4 +86,7 @@ To run the packaged jar directly: `java -jar apps/java-api/target/java-api-*.jar
 
 - **`UnsupportedClassVersionError` or `release version 21 not supported`**: the wrong JDK is on `PATH` or `JAVA_HOME`. Point both at JDK 21.
 - **`Port 8080 was already in use`**: another instance is still running. Stop it (see step 5) or start with `-Dspring-boot.run.arguments=--server.port=8081`.
-- **PostgreSQL**: it is not wired up yet. The datasource settings in `application.properties` are commented out, so the app needs no database.
+- **Database**: PostgreSQL runs in Docker, schema changes are Flyway migrations in `src/main/resources/db/migration`, and Hibernate only validates (`ddl-auto=validate`).
+  The container keeps running after the app stops; `docker compose down` in `apps/java-api` stops it.
+  See the `runapp` skill for port and Flyway troubleshooting.
+- **Whole API in a container**: `docker compose --profile full up --build` (from `apps/java-api`) builds the `Dockerfile` and runs it next to PostgreSQL on port 8080. Stop any `nx serve java-api` first.

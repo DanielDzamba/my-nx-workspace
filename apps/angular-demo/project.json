@@ -41,7 +41,29 @@
         "development": {
           "optimization": false,
           "extractLicenses": false,
-          "sourceMap": true
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/angular-demo/src/environments/environment.ts",
+              "with": "apps/angular-demo/src/environments/environment.development.ts"
+            }
+          ]
+        },
+        "github-pages": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all",
+          "baseHref": "/my-nx-workspace/"
         }
       },
       "defaultConfiguration": "production"
@@ -49,6 +71,9 @@
     "serve": {
       "continuous": true,
       "executor": "@angular/build:dev-server",
+      "options": {
+        "proxyConfig": "apps/angular-demo/proxy.conf.json"
+      },
       "configurations": {
         "production": {
           "buildTarget": "angular-demo:build:production"

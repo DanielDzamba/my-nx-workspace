@@ -1,0 +1,44 @@
+# Local development infrastructure for java-api.
+#
+# `npx nx serve java-api` starts the postgres service automatically (spring-boot-docker-compose),
+# so you rarely need to run this by hand. Useful commands, from apps/java-api:
+#   docker compose up -d --wait          # start only PostgreSQL
+#   docker compose --profile full up --build   # PostgreSQL + the API as a container
+#   docker compose down                  # stop (data is kept in the volume)
+#   docker compose down -v               # stop and wipe the database
+name: java-api
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      # Development-only credentials
+      POSTGRES_DB: java_api
+      POSTGRES_USER: java_api
+      POSTGRES_PASSWORD: java_api
+    ports:
+      # Bound to localhost only, so the database is not reachable from the network
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    profiles: [full]
+    build: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/java_api
+      SPRING_DATASOURCE_USERNAME: java_api
+      SPRING_DATASOURCE_PASSWORD: java_api
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

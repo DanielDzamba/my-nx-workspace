@@ -1,6 +1,7 @@
 package com.example.javaapi.hello;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -27,6 +28,19 @@ class HelloControllerTests {
 		mockMvc.perform(get("/api/hello").param("name", "Nx"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.message").value("Hello, Nx!"));
+	}
+
+	@Test
+	void allowsConfiguredCorsOrigin() throws Exception {
+		mockMvc.perform(get("/api/hello").header("Origin", "http://localhost:4200"))
+			.andExpect(status().isOk())
+			.andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"));
+	}
+
+	@Test
+	void rejectsUnknownCorsOrigin() throws Exception {
+		mockMvc.perform(get("/api/hello").header("Origin", "https://evil.example"))
+			.andExpect(status().isForbidden());
 	}
 
 }
