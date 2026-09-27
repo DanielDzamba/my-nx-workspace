@@ -3,10 +3,15 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import {
+  provideHttpClient,
+  withFetch,
+  withInterceptors,
+} from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { environment } from '../environments/environment';
 import { appRoutes } from './app.routes';
+import { authInterceptors, authProviders } from './auth.providers';
 import { API_BASE_URL } from './domains/shared/util';
 
 export const appConfig: ApplicationConfig = {
@@ -14,7 +19,8 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
-    provideHttpClient(withFetch()),
+    provideHttpClient(withFetch(), withInterceptors(authInterceptors)),
     { provide: API_BASE_URL, useValue: environment.apiUrl },
+    ...authProviders,
   ],
 };

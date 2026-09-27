@@ -42,6 +42,37 @@ async function mockTodoApi(page: Page, initial: Todo[] = []): Promise<void> {
   });
 }
 
+/** Login through the fake AuthClient of the e2e build (no Auth0), which then opens /todos. */
+async function login(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Prihlásiť sa' }).click();
+  await expect(page).toHaveURL(/\/todos$/);
+}
+
+test('keeps anonymous users out of the todo list', async ({ page }) => {
+  await page.goto('/todos');
+
+  await expect(page).toHaveURL((url) => url.pathname === '/');
+  await expect(page.getByRole('heading', { name: 'TODO app' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Prihlásiť sa' })
+  ).toBeVisible();
+});
+
+test('logs in and out', async ({ page }) => {
+  await mockTodoApi(page);
+  await login(page);
+  await expect(page.getByRole('heading', { name: 'TODO list' })).toBeVisible();
+
+  await page.getByRole('link', { name: '← Domov' }).click();
+  await expect(page.getByText('Prihlásený ako E2E používateľ')).toBeVisible();
+  await page.getByRole('button', { name: 'Odhlásiť sa' }).click();
+
+  await expect(
+    page.getByRole('button', { name: 'Prihlásiť sa' })
+  ).toBeVisible();
+});
+
 test('adds, completes and deletes a todo', async ({ page }) => {
   await mockTodoApi(page, [
     {
@@ -51,7 +82,7 @@ test('adds, completes and deletes a todo', async ({ page }) => {
       createdAt: '2026-01-01T00:00:00Z',
     },
   ]);
-  await page.goto('/');
+  await login(page);
 
   await expect(page.getByRole('heading', { name: 'TODO list' })).toBeVisible();
   await expect(page.getByText('Kúpiť mlieko')).toBeVisible();
@@ -75,7 +106,7 @@ test('adds, completes and deletes a todo', async ({ page }) => {
 
 test('shows an error when the backend is unreachable', async ({ page }) => {
   await page.route('**/api/todos**', (route) => route.abort());
-  await page.goto('/');
+  await login(page);
 
   await expect(page.getByRole('alert')).toHaveText(
     'Nepodarilo sa načítať úlohy. Beží backend?'

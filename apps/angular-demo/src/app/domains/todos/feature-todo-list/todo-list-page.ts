@@ -5,13 +5,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import type { MutationResult } from '@angular-architects/ngrx-toolkit';
 import { Todo, TodoStore } from '../data';
 import { TodoAddForm, TodoItem } from '../ui';
 
 @Component({
   selector: 'app-todo-list-page',
-  imports: [TodoAddForm, TodoItem],
+  imports: [RouterLink, TodoAddForm, TodoItem],
   providers: [TodoStore],
   templateUrl: './todo-list-page.html',
   styleUrl: './todo-list-page.css',

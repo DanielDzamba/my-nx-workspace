@@ -1,0 +1,15 @@
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AuthStore } from '../data';
+
+/** Public landing page: explains the app and starts the Auth0 login. */
+@Component({
+  selector: 'app-home-page',
+  imports: [RouterLink],
+  templateUrl: './home-page.html',
+  styleUrl: './home-page.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class HomePage {
+  protected readonly auth = inject(AuthStore);
+}

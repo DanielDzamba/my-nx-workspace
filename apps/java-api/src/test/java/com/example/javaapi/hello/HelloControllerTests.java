@@ -1,5 +1,6 @@
 package com.example.javaapi.hello;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -9,9 +10,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.example.javaapi.config.SecurityConfig;
+
 @WebMvcTest(HelloController.class)
+@Import(SecurityConfig.class)
 class HelloControllerTests {
 
 	@Autowired
@@ -19,21 +24,21 @@ class HelloControllerTests {
 
 	@Test
 	void returnsDefaultGreeting() throws Exception {
-		mockMvc.perform(get("/api/hello"))
+		mockMvc.perform(get("/api/hello").with(jwt()))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.message").value("Hello, world!"));
 	}
 
 	@Test
 	void greetsByName() throws Exception {
-		mockMvc.perform(get("/api/hello").param("name", "Nx"))
+		mockMvc.perform(get("/api/hello").param("name", "Nx").with(jwt()))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.message").value("Hello, Nx!"));
 	}
 
 	@Test
 	void allowsConfiguredCorsOrigin() throws Exception {
-		mockMvc.perform(get("/api/hello").header("Origin", "http://localhost:4200"))
+		mockMvc.perform(get("/api/hello").header("Origin", "http://localhost:4200").with(jwt()))
 			.andExpect(status().isOk())
 			.andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"));
 	}
@@ -51,7 +56,7 @@ class HelloControllerTests {
 
 	@Test
 	void rejectsUnknownCorsOrigin() throws Exception {
-		mockMvc.perform(get("/api/hello").header("Origin", "https://evil.example"))
+		mockMvc.perform(get("/api/hello").header("Origin", "https://evil.example").with(jwt()))
 			.andExpect(status().isForbidden());
 	}
 

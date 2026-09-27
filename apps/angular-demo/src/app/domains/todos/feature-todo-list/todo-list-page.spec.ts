@@ -4,6 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { Todo } from '../data';
 import { TodoListPage } from './todo-list-page';
 
@@ -20,7 +21,11 @@ describe('TodoListPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TodoListPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
   });
