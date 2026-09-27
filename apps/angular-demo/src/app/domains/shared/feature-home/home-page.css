@@ -1,0 +1,12 @@
+.home {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}

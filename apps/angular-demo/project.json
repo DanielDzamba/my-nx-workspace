@@ -64,6 +64,21 @@
           ],
           "outputHashing": "all",
           "baseHref": "/my-nx-workspace/"
+        },
+        "e2e": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/angular-demo/src/environments/environment.ts",
+              "with": "apps/angular-demo/src/environments/environment.development.ts"
+            },
+            {
+              "replace": "apps/angular-demo/src/app/auth.providers.ts",
+              "with": "apps/angular-demo/src/app/auth.providers.e2e.ts"
+            }
+          ]
         }
       },
       "defaultConfiguration": "production"
@@ -80,6 +95,10 @@
         },
         "development": {
           "buildTarget": "angular-demo:build:development"
+        },
+        "e2e": {
+          "buildTarget": "angular-demo:build:e2e",
+          "port": 4300
         }
       },
       "defaultConfiguration": "development"

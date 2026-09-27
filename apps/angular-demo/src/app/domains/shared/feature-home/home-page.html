@@ -1,0 +1,19 @@
+<section class="home">
+  <h1>TODO app</h1>
+  <p>
+    Ukážková aplikácia: Angular, Spring Boot a PostgreSQL. Prihlásenie
+    zabezpečuje Auth0 cez OAuth 2.0 a OpenID Connect.
+  </p>
+
+  @if (auth.user(); as user) {
+  <p>Prihlásený ako <strong>{{ user.name }}</strong></p>
+  <div class="actions">
+    <a routerLink="/todos">Otvoriť úlohy</a>
+    <button type="button" (click)="auth.logout()">Odhlásiť sa</button>
+  </div>
+  } @else {
+  <div class="actions">
+    <button type="button" (click)="auth.login()">Prihlásiť sa</button>
+  </div>
+  }
+</section>
