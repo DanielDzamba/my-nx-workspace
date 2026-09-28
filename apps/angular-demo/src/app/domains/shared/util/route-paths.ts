@@ -6,9 +6,11 @@
 export const ROUTE_PATHS = {
   home: '',
   todos: 'todos',
+  adminTodos: 'admin/todos',
 } as const;
 
 export const ROUTE_URLS = {
   home: `/${ROUTE_PATHS.home}`,
   todos: `/${ROUTE_PATHS.todos}`,
+  adminTodos: `/${ROUTE_PATHS.adminTodos}`,
 } as const;

@@ -66,6 +66,8 @@ test('logs in and out', async ({ page }) => {
 
   await page.getByRole('link', { name: '← Domov' }).click();
   await expect(page.getByText('Prihlásený ako E2E používateľ')).toBeVisible();
+  // The fake e2e user has no roles
+  await expect(page.getByRole('link', { name: /admin/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Odhlásiť sa' }).click();
 
   await expect(

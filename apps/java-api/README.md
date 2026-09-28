@@ -58,4 +58,27 @@ docker build -t java-api .                 # image only
 ## Endpoints
 
 - `GET /api/hello?name=Nx` → `{"message":"Hello, Nx!"}`
+- `GET|POST /api/todos`, `GET|PUT|DELETE /api/todos/{id}` — todos of the signed-in user (owner = `sub` of the access token); another user's todo answers 404
+- `GET /api/admin/todos` — todos of all users with `ownerId`; role `ADMIN` only (401 without a token, 403 without the role)
 - `GET /actuator/health` (includes the database), `/actuator/health/liveness`, `/actuator/health/readiness`
+
+## Roles (Auth0)
+
+Every signed-in user is a regular user. `ADMIN` is an Auth0 role, delivered in the custom claim
+`https://todo-api/roles` (`SecurityConfig.ROLES_CLAIM`) of the access token (backend) and the ID
+token (frontend, to show the admin page). Setup in the Auth0 dashboard:
+
+1. **User Management → Roles**: create role `ADMIN` and assign it to the admin users.
+2. **Actions → Library → Create Action** (trigger _Login / Post Login_), deploy it:
+
+   ```js
+   exports.onExecutePostLogin = async (event, api) => {
+     const roles = event.authorization?.roles ?? [];
+     api.accessToken.setCustomClaim('https://todo-api/roles', roles);
+     api.idToken.setCustomClaim('https://todo-api/roles', roles);
+   };
+   ```
+
+3. **Actions → Triggers → post-login**: drag the Action into the flow and apply.
+
+A role change reaches the tokens at the next login or token refresh.

@@ -1,16 +1,33 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { catchError, of, switchMap } from 'rxjs';
-import { AuthClient, AuthUser } from './auth-client';
+import { AuthClient, AuthUser, ROLES, Role } from './auth-client';
 
 /**
- * Standard OIDC claims of the Auth0 ID token that the app reads (scopes `profile` and `email`).
- * All optional: which ones are present depends on the connection (database, Google).
+ * Custom claim with the user's Auth0 roles, added by a Post-Login Action (Auth0 requires a URL
+ * namespace). The backend reads the same claim from the access token.
+ */
+export const ROLES_CLAIM = 'https://todo-api/roles';
+
+const KNOWN_ROLES: readonly Role[] = Object.values(ROLES);
+
+/**
+ * Claims of the Auth0 ID token that the app reads: standard OIDC ones (scopes `profile` and
+ * `email`) and the roles. All optional: which ones are present depends on the connection
+ * (database, Google) and on the user's roles.
  */
 interface IdTokenClaims {
   name?: string;
   nickname?: string;
   email?: string;
+  [ROLES_CLAIM]?: unknown;
+}
+
+/** Keeps the roles the app knows; anything else in the claim is ignored. */
+function readRoles(claim: unknown): Role[] {
+  return Array.isArray(claim)
+    ? KNOWN_ROLES.filter((role) => claim.includes(role))
+    : [];
 }
 
 /** AuthClient backed by angular-auth-oidc-client (Authorization Code + PKCE). */
@@ -32,6 +49,7 @@ export class OidcAuthClient extends AuthClient {
     // `||`, not `??`: an empty string falls through to the next claim as well
     return {
       name: claims?.name || claims?.nickname || claims?.email || 'používateľ',
+      roles: readRoles(claims?.[ROLES_CLAIM]),
     };
   });
 

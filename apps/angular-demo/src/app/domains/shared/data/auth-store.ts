@@ -6,7 +6,7 @@ import {
   withMethods,
   withProps,
 } from '@ngrx/signals';
-import { AuthClient } from './auth-client';
+import { AuthClient, Role } from './auth-client';
 
 /**
  * App-wide login state. Components and guards use this store only, never the OIDC library,
@@ -22,7 +22,11 @@ export const AuthStore = signalStore(
     isAuthenticated: computed(() => _client.isAuthenticated()),
     user: computed(() => _client.user()),
   })),
-  withMethods(({ _client }) => ({
+  withMethods(({ _client, user }) => ({
+    /** Reads the `user` signal, so templates and computeds calling it stay reactive. */
+    hasRole(role: Role): boolean {
+      return user()?.roles.includes(role) ?? false;
+    },
     login(): void {
       _client.login();
     },

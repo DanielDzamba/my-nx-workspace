@@ -15,7 +15,7 @@ class FakeAuthClient extends AuthClient {
 
   readonly isAuthenticated = this.authenticated.asReadonly();
   readonly user = computed(() =>
-    this.authenticated() ? { name: 'E2E používateľ' } : null
+    this.authenticated() ? { name: 'E2E používateľ', roles: [] } : null
   );
 
   login(): void {
