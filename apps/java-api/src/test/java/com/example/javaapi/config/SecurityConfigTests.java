@@ -1,5 +1,6 @@
 package com.example.javaapi.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -7,11 +8,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -63,6 +69,36 @@ class SecurityConfigTests {
 	void deniesEverythingElse() throws Exception {
 		mockMvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
 		mockMvc.perform(get("/actuator/env").with(jwt())).andExpect(status().isForbidden());
+	}
+
+	@Test
+	void mapsRolesClaimToAuthorities() {
+		Jwt token = Jwt.withTokenValue("token")
+			.header("alg", "RS256")
+			.subject("auth0|alice")
+			.claim(SecurityConfig.ROLES_CLAIM, List.of("ADMIN"))
+			.build();
+
+		AbstractAuthenticationToken authentication = SecurityConfig.jwtAuthenticationConverter().convert(token);
+
+		assertThat(roles(authentication)).containsExactly("ROLE_ADMIN");
+		assertThat(authentication.getName()).isEqualTo("auth0|alice");
+	}
+
+	@Test
+	void grantsNoRoleWithoutRolesClaim() {
+		Jwt token = Jwt.withTokenValue("token").header("alg", "RS256").subject("auth0|bob").build();
+
+		assertThat(roles(SecurityConfig.jwtAuthenticationConverter().convert(token))).isEmpty();
+	}
+
+	/** Spring Security also adds a {@code FACTOR_BEARER} authority (how the user authenticated). */
+	private static List<String> roles(AbstractAuthenticationToken authentication) {
+		return authentication.getAuthorities()
+			.stream()
+			.map(GrantedAuthority::getAuthority)
+			.filter((authority) -> authority.startsWith("ROLE_"))
+			.toList();
 	}
 
 }

@@ -9,6 +9,9 @@
   <p>Prihlásený ako <strong>{{ user.name }}</strong></p>
   <div class="actions">
     <a [routerLink]="urls.todos">Otvoriť úlohy</a>
+    @if (auth.hasRole(roles.admin)) {
+    <a [routerLink]="urls.adminTodos">Úlohy všetkých (admin)</a>
+    }
     <button type="button" (click)="auth.logout()">Odhlásiť sa</button>
   </div>
   } @else {

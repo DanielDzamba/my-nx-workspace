@@ -1,0 +1,41 @@
+<section class="admin-todos">
+  <a [routerLink]="urls.home">← Domov</a>
+  <h1>Úlohy všetkých používateľov</h1>
+
+  @if (error(); as message) {
+  <p class="error" role="alert">{{ message }}</p>
+  } @else if (store.todosIsLoading()) {
+  <p class="muted">Načítavam…</p>
+  } @else {
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Úloha</th>
+        <th scope="col">Vlastník</th>
+        <th scope="col">Hotovo</th>
+        <th scope="col">Vytvorená</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (todo of store.todos(); track todo.id) {
+      <tr>
+        <td>{{ todo.title }}</td>
+        <td><code>{{ todo.ownerId }}</code></td>
+        <td>{{ todo.completed ? 'áno' : 'nie' }}</td>
+        <td>{{ todo.createdAt | date: 'd.M.yyyy HH:mm' }}</td>
+      </tr>
+      } @empty {
+      <tr>
+        <td colspan="4" class="muted">Zatiaľ žiadne úlohy.</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (store.todos().length) {
+  <p class="muted">
+    Spolu: {{ store.todos().length }} úloh od {{ store.ownerCount() }}
+    vlastníkov
+  </p>
+  } }
+</section>

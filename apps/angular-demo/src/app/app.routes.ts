@@ -1,5 +1,5 @@
 import { Route } from '@angular/router';
-import { authGuard } from './domains/shared/data';
+import { ROLES, authGuard, roleGuard } from './domains/shared/data';
 import { ROUTE_PATHS } from './domains/shared/util';
 
 export const appRoutes: Route[] = [
@@ -14,6 +14,14 @@ export const appRoutes: Route[] = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./domains/todos/feature-todo-list').then((m) => m.TodoListPage),
+  },
+  {
+    path: ROUTE_PATHS.adminTodos,
+    canActivate: [roleGuard(ROLES.admin)],
+    loadComponent: () =>
+      import('./domains/todos/feature-admin-todo-list').then(
+        (m) => m.AdminTodoListPage
+      ),
   },
   { path: '**', redirectTo: ROUTE_PATHS.home },
 ];

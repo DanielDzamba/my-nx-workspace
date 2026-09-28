@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { AuthClient, AuthUser } from '../data';
+import { AuthClient, AuthUser, ROLES } from '../data';
 import { HomePage } from './home-page';
 
 describe('HomePage', () => {
@@ -39,6 +39,12 @@ describe('HomePage', () => {
     return found;
   }
 
+  function links(element: HTMLElement): (string | null)[] {
+    return Array.from(element.querySelectorAll('a')).map((a) =>
+      a.getAttribute('href')
+    );
+  }
+
   it('offers the login to anonymous users', () => {
     const element = render();
 
@@ -49,12 +55,19 @@ describe('HomePage', () => {
 
   it('greets a signed-in user and links to the todo list', () => {
     authenticated.set(true);
-    user.set({ name: 'Jana' });
+    user.set({ name: 'Jana', roles: [] });
     const element = render();
 
     expect(element.textContent).toContain('Prihlásený ako Jana');
-    expect(element.querySelector('a')?.getAttribute('href')).toBe('/todos');
+    expect(links(element)).toEqual(['/todos']);
     button(element, 'Odhlásiť sa').click();
     expect(client.logout).toHaveBeenCalledOnce();
+  });
+
+  it('links admins to the overview of all todos', () => {
+    authenticated.set(true);
+    user.set({ name: 'Admin', roles: [ROLES.admin] });
+
+    expect(links(render())).toEqual(['/todos', '/admin/todos']);
   });
 });

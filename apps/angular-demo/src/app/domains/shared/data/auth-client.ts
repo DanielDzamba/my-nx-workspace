@@ -1,7 +1,18 @@
 import { Signal } from '@angular/core';
 
+/**
+ * Roles assigned in Auth0; the values must match the role names there. Every signed-in user is
+ * a regular user, roles grant extra rights. Never hard-code a role name elsewhere.
+ */
+export const ROLES = {
+  admin: 'ADMIN',
+} as const;
+
+export type Role = (typeof ROLES)[keyof typeof ROLES];
+
 export interface AuthUser {
   name: string;
+  roles: readonly Role[];
 }
 
 /**

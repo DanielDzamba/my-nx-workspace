@@ -2,15 +2,22 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../shared/util';
-import { Todo, TodoRequest } from './todo';
+import { AdminTodo, Todo, TodoRequest } from './todo';
 
 @Injectable({ providedIn: 'root' })
 export class TodoClient {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${inject(API_BASE_URL)}/api/todos`;
+  private readonly apiUrl = inject(API_BASE_URL);
+  private readonly baseUrl = `${this.apiUrl}/api/todos`;
 
+  /** Todos of the signed-in user. */
   getAll(): Observable<Todo[]> {
     return this.http.get<Todo[]>(this.baseUrl);
+  }
+
+  /** Todos of all users; the backend answers 403 unless the user has the ADMIN role. */
+  getAllOwners(): Observable<AdminTodo[]> {
+    return this.http.get<AdminTodo[]>(`${this.apiUrl}/api/admin/todos`);
   }
 
   get(id: number): Observable<Todo> {

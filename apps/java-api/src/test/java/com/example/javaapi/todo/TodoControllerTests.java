@@ -1,5 +1,6 @@
 package com.example.javaapi.todo;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -18,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -33,6 +35,10 @@ import com.example.javaapi.TestcontainersConfiguration;
 @Testcontainers(disabledWithoutDocker = true)
 class TodoControllerTests {
 
+	private static final String ALICE = "auth0|alice";
+
+	private static final String BOB = "auth0|bob";
+
 	private MockMvc mockMvc;
 
 	@Autowired
@@ -40,12 +46,18 @@ class TodoControllerTests {
 
 	@BeforeEach
 	void setUp(WebApplicationContext context) {
-		// Every request carries a mocked, already validated JWT (no Auth0 call)
+		// Unless a test says otherwise, requests come from Alice with a mocked, already validated
+		// JWT (no Auth0 call)
 		this.mockMvc = MockMvcBuilders.webAppContextSetup(context)
 			.apply(springSecurity())
-			.defaultRequest(get("/").with(jwt()))
+			.defaultRequest(get("/").with(as(ALICE)))
 			.build();
 		this.repository.deleteAll();
+	}
+
+	/** A token whose {@code sub} claim is {@code subject}. */
+	private static RequestPostProcessor as(String subject) {
+		return jwt().jwt((token) -> token.subject(subject));
 	}
 
 	@Test
@@ -57,7 +69,9 @@ class TodoControllerTests {
 			.andExpect(jsonPath("$.id").isNumber())
 			.andExpect(jsonPath("$.title").value("Buy milk"))
 			.andExpect(jsonPath("$.completed").value(false))
-			.andExpect(jsonPath("$.createdAt").exists());
+			.andExpect(jsonPath("$.createdAt").exists())
+			// Users only ever see their own todos, so the owner is not repeated
+			.andExpect(jsonPath("$.ownerId").doesNotExist());
 
 		mockMvc.perform(get("/api/todos"))
 			.andExpect(status().isOk())
@@ -66,8 +80,46 @@ class TodoControllerTests {
 	}
 
 	@Test
+	void takesOwnerFromTokenNotFromBody() throws Exception {
+		mockMvc.perform(post("/api/todos").contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": "Mine", "ownerId": "auth0|bob"}""")).andExpect(status().isCreated());
+
+		assertThat(this.repository.findAll()).extracting(Todo::getOwnerId).containsExactly(ALICE);
+	}
+
+	@Test
+	void listsOnlyOwnTodos() throws Exception {
+		this.repository.save(new Todo(ALICE, "Alice todo", false));
+		this.repository.save(new Todo(BOB, "Bob todo", false));
+
+		mockMvc.perform(get("/api/todos"))
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].title").value("Alice todo"));
+		mockMvc.perform(get("/api/todos").with(as(BOB)))
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].title").value("Bob todo"));
+	}
+
+	@Test
+	void hidesTodosOfOtherUsers() throws Exception {
+		Todo todo = this.repository.save(new Todo(ALICE, "Private", false));
+
+		// Bob knows (or guesses) the ID: he gets the same answer as for an ID that does not exist
+		mockMvc.perform(get("/api/todos/{id}", todo.getId()).with(as(BOB))).andExpect(status().isNotFound());
+		mockMvc.perform(put("/api/todos/{id}", todo.getId()).with(as(BOB))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"title": "Hacked", "completed": true}""")).andExpect(status().isNotFound());
+		mockMvc.perform(delete("/api/todos/{id}", todo.getId()).with(as(BOB))).andExpect(status().isNotFound());
+
+		Todo unchanged = this.repository.findById(todo.getId()).orElseThrow();
+		assertThat(unchanged.getTitle()).isEqualTo("Private");
+		assertThat(unchanged.isCompleted()).isFalse();
+	}
+
+	@Test
 	void getsTodoById() throws Exception {
-		Todo todo = this.repository.save(new Todo("Read", false));
+		Todo todo = this.repository.save(new Todo(ALICE, "Read", false));
 
 		mockMvc.perform(get("/api/todos/{id}", todo.getId()))
 			.andExpect(status().isOk())
@@ -76,7 +128,7 @@ class TodoControllerTests {
 
 	@Test
 	void updatesTodo() throws Exception {
-		Todo todo = this.repository.save(new Todo("Draft", false));
+		Todo todo = this.repository.save(new Todo(ALICE, "Draft", false));
 
 		mockMvc.perform(put("/api/todos/{id}", todo.getId()).contentType(MediaType.APPLICATION_JSON).content("""
 				{"title": "Final", "completed": true}"""))
@@ -87,7 +139,7 @@ class TodoControllerTests {
 
 	@Test
 	void updateWithoutCompletedKeepsIt() throws Exception {
-		Todo todo = this.repository.save(new Todo("Done", true));
+		Todo todo = this.repository.save(new Todo(ALICE, "Done", true));
 
 		mockMvc.perform(put("/api/todos/{id}", todo.getId()).contentType(MediaType.APPLICATION_JSON).content("""
 				{"title": "Renamed"}"""))
@@ -97,7 +149,7 @@ class TodoControllerTests {
 
 	@Test
 	void deletesTodo() throws Exception {
-		Todo todo = this.repository.save(new Todo("Temp", false));
+		Todo todo = this.repository.save(new Todo(ALICE, "Temp", false));
 
 		mockMvc.perform(delete("/api/todos/{id}", todo.getId())).andExpect(status().isNoContent());
 		mockMvc.perform(get("/api/todos/{id}", todo.getId())).andExpect(status().isNotFound());

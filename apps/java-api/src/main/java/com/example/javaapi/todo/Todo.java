@@ -26,10 +26,15 @@ public class Todo {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	/** Auth0 user ID ({@code sub} claim) of the user who created the todo. */
+	@Column(name = "owner_id", nullable = false, updatable = false)
+	private String ownerId;
+
 	protected Todo() {
 	}
 
-	public Todo(String title, boolean completed) {
+	public Todo(String ownerId, String title, boolean completed) {
+		this.ownerId = ownerId;
 		this.title = title;
 		this.completed = completed;
 		this.createdAt = Instant.now();
@@ -57,6 +62,10 @@ public class Todo {
 
 	public Instant getCreatedAt() {
 		return this.createdAt;
+	}
+
+	public String getOwnerId() {
+		return this.ownerId;
 	}
 
 }
