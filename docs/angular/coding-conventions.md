@@ -36,6 +36,16 @@ MCP tool `get_best_practices` is the upstream source.
 - Forms with several fields or validation: Reactive forms (`FormGroup`, typed).
 - Signal Forms require Angular 22+; do not use them here yet.
 
+## Routing
+
+- Route paths live only in `ROUTE_PATHS` / `ROUTE_URLS` (`domains/shared/util/route-paths.ts`).
+  Never hard-code a path or URL string: `ROUTE_PATHS` for the route config (`path`, `redirectTo`),
+  `ROUTE_URLS` for `routerLink`, `navigateByUrl`, `createUrlTree` and library config
+  (e.g. `postLoginRoute`). Exception: the wildcard `'**'`.
+- In templates, expose the constant as `protected readonly urls = ROUTE_URLS;` and bind
+  `[routerLink]="urls.todos"`.
+- A new route adds its entry to both constants first. Specs may assert literal URLs.
+
 ## Services and data access
 
 - `@Injectable({ providedIn: 'root' })` for singletons.

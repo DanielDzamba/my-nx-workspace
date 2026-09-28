@@ -8,7 +8,7 @@
   @if (auth.user(); as user) {
   <p>Prihlásený ako <strong>{{ user.name }}</strong></p>
   <div class="actions">
-    <a routerLink="/todos">Otvoriť úlohy</a>
+    <a [routerLink]="urls.todos">Otvoriť úlohy</a>
     <button type="button" (click)="auth.logout()">Odhlásiť sa</button>
   </div>
   } @else {
