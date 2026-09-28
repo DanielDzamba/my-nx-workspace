@@ -46,6 +46,23 @@ MCP tool `get_best_practices` is the upstream source.
   `[routerLink]="urls.todos"`.
 - A new route adds its entry to both constants first. Specs may assert literal URLs.
 
+## Constants (single source of truth)
+
+- A value used in more than one place (a role name, a claim name, a storage key, a route) is
+  defined once as a named constant and imported everywhere else, specs included. Never repeat
+  the literal.
+- Group related values in an object `as const` and derive the type from it, so a new value is
+  added in one place:
+  `export const ROLES = { admin: 'ADMIN' } as const;`
+  `export type Role = (typeof ROLES)[keyof typeof ROLES];`
+- In templates, expose the constant as a `protected readonly` field (`roles = ROLES`) and bind
+  `roles.admin`, like `urls` for routes.
+- Place the constant next to the concept it belongs to, in the lowest layer that all users may
+  import (e.g. `ROLES` in `shared/data/auth-client.ts`, `ROUTE_PATHS` in `shared/util`). Export
+  it from the module's `index.ts` only if other modules need it.
+- Exceptions: user-facing texts in a single template, and values the backend or Auth0 defines
+  that the frontend uses exactly once.
+
 ## Services and data access
 
 - `@Injectable({ providedIn: 'root' })` for singletons.

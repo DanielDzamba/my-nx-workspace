@@ -24,6 +24,8 @@ These hold for all frontend code (`apps/angular-demo`, `mylib`). Details and rat
 - Host bindings in the `host` object, never `@HostBinding` / `@HostListener`.
 - Route paths only from `ROUTE_PATHS` / `ROUTE_URLS` (`domains/shared/util`); never hard-code a
   path string in routes, `routerLink`, `navigateByUrl` or `createUrlTree`.
+- A value used in more than one place is one named constant, imported everywhere (specs too);
+  e.g. role names only from `ROLES` (`domains/shared/data`), never the literal `'ADMIN'`.
 - No `any`. Strict TypeScript and strict templates stay on.
 - Code lives in the domain × layer structure and respects its boundaries:
   **read `docs/angular/architecture-boundaries.md` before creating, moving or importing across folders.**

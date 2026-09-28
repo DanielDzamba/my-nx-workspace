@@ -23,6 +23,8 @@ the rules — cite them.
      components are driven by inputs/outputs.
    - Stores: delegate to a client, immutable updates, derived state in `withComputed`, user-facing
      texts outside the store.
+   - Repeated literals (role names, claim names, keys, routes): each value used in more than one
+     place comes from one named constant (coding-conventions.md, "Constants").
    - Naming and file conventions; tests present and testing behaviour via DOM / public API.
 5. Report findings grouped by severity (violation of a documented rule → suggestion), each with
    `file:line`, the rule's doc section, and a concrete fix. Say explicitly when nothing was found.
