@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { MutationResult } from '@angular-architects/ngrx-toolkit';
+import { ROUTE_URLS } from '../../shared/util';
 import { Todo, TodoStore } from '../data';
 import { TodoAddForm, TodoItem } from '../ui';
 
@@ -20,6 +21,7 @@ import { TodoAddForm, TodoItem } from '../ui';
 })
 export class TodoListPage {
   protected readonly store = inject(TodoStore);
+  protected readonly urls = ROUTE_URLS;
 
   protected readonly newTitle = signal('');
   protected readonly editingId = signal<number | null>(null);

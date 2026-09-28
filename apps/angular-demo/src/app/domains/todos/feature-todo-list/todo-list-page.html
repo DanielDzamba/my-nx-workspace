@@ -1,5 +1,5 @@
 <section class="todo-app">
-  <a routerLink="/">← Domov</a>
+  <a [routerLink]="urls.home">← Domov</a>
   <h1>TODO list</h1>
 
   <app-todo-add-form [(title)]="newTitle" (add)="add($event)" />

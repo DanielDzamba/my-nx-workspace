@@ -22,6 +22,8 @@ These hold for all frontend code (`apps/angular-demo`, `mylib`). Details and rat
   instead of decorators; `inject()` instead of constructor injection.
 - Native control flow (`@if`, `@for` with `track`, `@switch`); no `*ngIf`, `ngClass`, `ngStyle`.
 - Host bindings in the `host` object, never `@HostBinding` / `@HostListener`.
+- Route paths only from `ROUTE_PATHS` / `ROUTE_URLS` (`domains/shared/util`); never hard-code a
+  path string in routes, `routerLink`, `navigateByUrl` or `createUrlTree`.
 - No `any`. Strict TypeScript and strict templates stay on.
 - Code lives in the domain × layer structure and respects its boundaries:
   **read `docs/angular/architecture-boundaries.md` before creating, moving or importing across folders.**

@@ -2,6 +2,7 @@ import { Injectable, Provider, computed, inject, signal } from '@angular/core';
 import { HttpInterceptorFn } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthClient } from './domains/shared/data';
+import { ROUTE_URLS } from './domains/shared/util';
 
 /**
  * Replaces auth.providers.ts in the e2e build: login and logout only flip a signal and
@@ -19,12 +20,12 @@ class FakeAuthClient extends AuthClient {
 
   login(): void {
     this.authenticated.set(true);
-    void this.router.navigateByUrl('/todos');
+    void this.router.navigateByUrl(ROUTE_URLS.todos);
   }
 
   logout(): void {
     this.authenticated.set(false);
-    void this.router.navigateByUrl('/');
+    void this.router.navigateByUrl(ROUTE_URLS.home);
   }
 }
 

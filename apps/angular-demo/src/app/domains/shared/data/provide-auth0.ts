@@ -10,6 +10,7 @@ import {
   provideAuth,
 } from 'angular-auth-oidc-client';
 import { catchError, of } from 'rxjs';
+import { ROUTE_URLS } from '../util';
 import { AuthClient } from './auth-client';
 import { OidcAuthClient } from './oidc-auth-client';
 
@@ -57,8 +58,8 @@ export function provideAuth0(config: Auth0Config): EnvironmentProviders {
         autoUserInfo: false,
         // Trailing slash: `/api` alone would also match e.g. `/api-docs`
         secureRoutes: [`${config.apiUrl}/api/`],
-        postLoginRoute: '/todos',
-        unauthorizedRoute: '/',
+        postLoginRoute: ROUTE_URLS.todos,
+        unauthorizedRoute: ROUTE_URLS.home,
         logLevel: LogLevel.Warn,
       },
     }),
