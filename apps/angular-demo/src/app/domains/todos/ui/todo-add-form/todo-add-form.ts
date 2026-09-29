@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  input,
   model,
   output,
 } from '@angular/core';
@@ -14,6 +15,9 @@ import { FormsModule } from '@angular/forms';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoAddForm {
+  /** Accessible name of the input, e.g. "Nová podúloha" when used for subtasks. */
+  readonly label = input('Nová úloha');
+  readonly placeholder = input('Čo treba urobiť?');
   /** Text in the input. Two-way bound so the parent can clear it after a successful add. */
   readonly title = model('');
   /** Emits the trimmed, non-empty title. */

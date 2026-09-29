@@ -16,6 +16,14 @@ export const appRoutes: Route[] = [
       import('./domains/todos/feature-todo-list').then((m) => m.TodoListPage),
   },
   {
+    path: ROUTE_PATHS.todoDetail,
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./domains/todos/feature-todo-detail').then(
+        (m) => m.TodoDetailPage
+      ),
+  },
+  {
     path: ROUTE_PATHS.adminTodos,
     canActivate: [roleGuard(ROLES.admin)],
     loadComponent: () =>

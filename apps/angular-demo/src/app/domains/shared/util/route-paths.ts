@@ -6,11 +6,14 @@
 export const ROUTE_PATHS = {
   home: '',
   todos: 'todos',
+  /** `:id` is bound to the `id` input of the routed component (`withComponentInputBinding`). */
+  todoDetail: 'todos/:id',
   adminTodos: 'admin/todos',
 } as const;
 
 export const ROUTE_URLS = {
   home: `/${ROUTE_PATHS.home}`,
   todos: `/${ROUTE_PATHS.todos}`,
+  todoDetail: (id: number) => `/${ROUTE_PATHS.todos}/${id}`,
   adminTodos: `/${ROUTE_PATHS.adminTodos}`,
 } as const;

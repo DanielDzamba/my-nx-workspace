@@ -8,11 +8,14 @@ import {
 } from '@angular-architects/ngrx-toolkit';
 import {
   patchState,
+  signalMethod,
   signalStore,
   withComputed,
+  withMethods,
   withProps,
+  withState,
 } from '@ngrx/signals';
-import { Todo } from './todo';
+import { TodoQuery } from '../util';
 import { TodoClient } from './todo-client';
 
 export interface TodoChanges {
@@ -21,51 +24,50 @@ export interface TodoChanges {
 }
 
 /**
- * State of the todo list: loads all todos once and keeps the list in sync
- * with add / update / remove mutations. Backend access goes through TodoClient.
+ * State of the paged todo list. The `query` (filter, sort, page) comes from the URL via
+ * `connectQuery`; every change loads the matching page from the server. After a mutation the
+ * current page is reloaded, because where a todo belongs (which page, whether it still matches
+ * the filter) is decided by the server.
  */
 export const TodoStore = signalStore(
   withDevtools('todos'),
+  // null until connectQuery: loading the default list first would be a wasted request
+  withState<{ query: TodoQuery | null }>({ query: null }),
   withProps(() => ({
     _client: inject(TodoClient),
   })),
   withResource((store) => ({
-    todos: rxResource({
-      stream: () => store._client.getAll(),
-      defaultValue: [],
+    todoPage: rxResource({
+      // undefined keeps the resource idle
+      params: () => store.query() ?? undefined,
+      stream: ({ params }) => store._client.getPage(params),
     }),
   })),
-  withComputed(({ todosValue }) => {
-    const todos = computed(() => todosValue() ?? []);
-    return {
-      todos,
-      remaining: computed(
-        () => todos().filter((todo) => !todo.completed).length
-      ),
-    };
-  }),
+  withComputed(({ todoPageValue }) => ({
+    todos: computed(() => todoPageValue()?.content ?? []),
+    totalElements: computed(() => todoPageValue()?.page.totalElements ?? 0),
+    totalPages: computed(() => todoPageValue()?.page.totalPages ?? 0),
+  })),
+  withMethods((store) => ({
+    /** Follows a signal of the query (e.g. derived from the route's query params). */
+    connectQuery: signalMethod<TodoQuery>((query) =>
+      patchState(store, { query })
+    ),
+    _reload: () => store._todoPageReload(),
+  })),
   withMutations((store) => ({
     addTodo: rxMutation({
       operation: (title: string) => store._client.add({ title }),
-      onSuccess: (created: Todo) =>
-        patchState(store, { todosValue: [...store.todos(), created] }),
+      onSuccess: () => store._reload(),
     }),
     updateTodo: rxMutation({
       operation: ({ id, changes }: { id: number; changes: TodoChanges }) =>
         store._client.update(id, changes),
-      onSuccess: (updated: Todo) =>
-        patchState(store, {
-          todosValue: store
-            .todos()
-            .map((todo) => (todo.id === updated.id ? updated : todo)),
-        }),
+      onSuccess: () => store._reload(),
     }),
     removeTodo: rxMutation({
       operation: (id: number) => store._client.delete(id),
-      onSuccess: (_: void, id: number) =>
-        patchState(store, {
-          todosValue: store.todos().filter((todo) => todo.id !== id),
-        }),
+      onSuccess: () => store._reload(),
     }),
   }))
 );

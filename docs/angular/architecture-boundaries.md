@@ -82,6 +82,12 @@ origin are provided by the shell via DI: `API_BASE_URL` (`domains/shared/util`) 
 `domains/todos` shows every layer:
 
 - `feature-todo-list/todo-list-page.ts` — routed smart component, provides and uses `TodoStore`,
-  maps mutation results to user messages.
-- `ui/todo-item`, `ui/todo-add-form` — presentational, emit events, own only local UI state.
-- `data/todo-store.ts` — Signal Store; `data/todo-client.ts` — HTTP; `data/todo.ts` — models.
+  maps mutation results to user messages; filter, sort and page live in the URL (query params
+  bound as inputs).
+- `feature-todo-detail/todo-detail-page.ts` — routed by `:id` (bound as an input), detail store.
+- `ui/todo-item`, `ui/todo-add-form`, `ui/todo-filter`, `ui/pager` — presentational, emit events,
+  own only local UI state.
+- `data/todo-store.ts`, `data/todo-detail-store.ts` — Signal Stores; `data/todo-client.ts` — HTTP;
+  `data/todo.ts` — models.
+- `util/todo-query.ts` — the list query model and its constants, pure URL ↔ query helpers
+  (in `util` because `ui` needs the constants at runtime, and `ui` may import `data` only as types).

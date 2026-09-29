@@ -1,0 +1,19 @@
+@if (totalPages() > 1) {
+<nav aria-label="Stránkovanie">
+  <button
+    type="button"
+    [disabled]="!hasPrevious()"
+    (click)="pageChange.emit(page() - 1)"
+  >
+    ‹ Predchádzajúca
+  </button>
+  <span>Strana {{ page() + 1 }} z {{ totalPages() }}</span>
+  <button
+    type="button"
+    [disabled]="!hasNext()"
+    (click)="pageChange.emit(page() + 1)"
+  >
+    Ďalšia ›
+  </button>
+</nav>
+}

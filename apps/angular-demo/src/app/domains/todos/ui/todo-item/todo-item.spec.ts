@@ -1,12 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import type { Todo } from '../../data';
+import { provideRouter } from '@angular/router';
+import { ROUTE_URLS } from '../../../shared/util';
+import type { TodoSummary } from '../../data';
 import { TodoItem } from './todo-item';
 
-const milk: Todo = {
+const milk: TodoSummary = {
   id: 1,
   title: 'Buy milk',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  subtaskCount: 0,
+  completedSubtaskCount: 0,
 };
 
 describe('TodoItem', () => {
@@ -14,6 +18,7 @@ describe('TodoItem', () => {
   let element: HTMLElement;
 
   beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
     fixture = TestBed.createComponent(TodoItem);
     fixture.componentRef.setInput('todo', milk);
     fixture.detectChanges();
@@ -44,6 +49,26 @@ describe('TodoItem', () => {
     fixture.componentRef.setInput('todo', { ...milk, completed: true });
     fixture.detectChanges();
     expect(element.classList).toContain('completed');
+  });
+
+  it('links the title to the detail', () => {
+    const link = element.querySelector('a.title') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe(ROUTE_URLS.todoDetail(milk.id));
+  });
+
+  it('shows subtask progress only when there are subtasks', () => {
+    expect(element.querySelector('.subtasks')).toBeNull();
+
+    fixture.componentRef.setInput('todo', {
+      ...milk,
+      subtaskCount: 3,
+      completedSubtaskCount: 1,
+    });
+    fixture.detectChanges();
+
+    const progress = element.querySelector('.subtasks');
+    expect(progress?.textContent).toBe('1/3');
+    expect(progress?.getAttribute('aria-label')).toBe('Podúlohy: 1 z 3');
   });
 
   it('emits toggleCompleted, remove and editStart', () => {

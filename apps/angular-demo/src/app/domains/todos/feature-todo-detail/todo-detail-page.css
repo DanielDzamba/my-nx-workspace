@@ -1,0 +1,69 @@
+.todo-detail {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.title-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.title-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem;
+  font: inherit;
+  font-size: 1.2rem;
+}
+
+.completed {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subtasks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+
+.subtasks li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.subtask-title {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.subtasks li.done .subtask-title {
+  text-decoration: line-through;
+  color: #888;
+}
+
+button {
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.danger {
+  color: #b00020;
+  background: none;
+}
+
+.error {
+  color: #b00020;
+}
+
+.muted {
+  color: #888;
+}

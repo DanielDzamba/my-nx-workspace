@@ -34,11 +34,37 @@ Prefer named resources (`{ todos: rxResource(...) }`) so signals are self-descri
 `rxMutation` uses `concatOp` by default (calls are queued); choose `switchOp` / `exhaustOp` /
 `mergeOp` via `operator` when the use case needs it.
 
+## Parameters from the route
+
+What a page shows (an id, filter, sort, page) lives in the URL, so reload, the back button and
+shared links work. The router binds route and query params to inputs of the routed component
+(`withComponentInputBinding()` in `app.config.ts`); the page parses them and connects the
+signal to its store:
+
+```ts
+readonly page = input<string>(); // ?page=2
+protected readonly pageIndex = computed(() => parsePageParam(this.page()));
+
+constructor() {
+  this.store.connectPage(this.pageIndex); // signalMethod: follows the signal
+}
+```
+
+- The store keeps the parameter in state, `null` until connected, and the resource's `params`
+  return `undefined` while it is `null`. Otherwise the resource would first load with a default
+  value and then again with the real one.
+- The page changes what is shown by navigating (`router.navigate([], { relativeTo, queryParams })`),
+  never by patching the store: the URL stays the single source of truth.
+- Parsing lives in the domain's `util` layer and falls back to defaults for invalid values.
+- Paged lists reload the current page after a mutation (the server decides where a changed item
+  belongs); a detail store applies the mutation's response to its value instead.
+
 ## Store types
 
-- **List / search store** (e.g. `TodoStore`): one resource for the collection, mutations that keep
-  it in sync.
-- **Detail store**: resource keyed by an id signal (`params: () => ({ id: store.id() })`).
+- **List / search store** (e.g. `TodoStore`): one resource for the (paged) collection, keyed by the
+  query; mutations that keep it in sync.
+- **Detail store** (e.g. `TodoDetailStore`): resource keyed by an id signal
+  (`params: () => store.id() ?? undefined`).
 - **Lookup store**: small, rarely changing reference data, usually `providedIn: 'root'`.
 - **UI state**: prefer component signals; a store only if several components share it.
 

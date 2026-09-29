@@ -1,0 +1,43 @@
+<div class="statuses" role="group" aria-label="Stav">
+  @for (status of statuses; track status.value) {
+  <button
+    type="button"
+    [class.active]="query().status === status.value"
+    [attr.aria-pressed]="query().status === status.value"
+    (click)="setStatus(status.value)"
+  >
+    {{ status.label }}
+  </button>
+  }
+</div>
+
+<form class="search" role="search" (ngSubmit)="search()">
+  <input
+    name="q"
+    type="search"
+    [(ngModel)]="searchDraft"
+    placeholder="Hľadať v názve"
+    maxlength="200"
+    autocomplete="off"
+    aria-label="Hľadať v názve"
+  />
+  <button type="submit">Hľadať</button>
+  @if (query().q) {
+  <button type="button" class="secondary" (click)="clearSearch()">
+    Zrušiť hľadanie
+  </button>
+  }
+</form>
+
+<label class="sort">
+  Zoradiť
+  <select
+    name="sort"
+    [ngModel]="query().sort"
+    (ngModelChange)="setSort($event)"
+  >
+    @for (sort of sorts; track sort.value) {
+    <option [value]="sort.value">{{ sort.label }}</option>
+    }
+  </select>
+</label>

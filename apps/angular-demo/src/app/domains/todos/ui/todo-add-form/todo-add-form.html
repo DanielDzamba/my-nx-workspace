@@ -2,10 +2,10 @@
   <input
     name="title"
     [(ngModel)]="title"
-    placeholder="Čo treba urobiť?"
+    [placeholder]="placeholder()"
     maxlength="200"
     autocomplete="off"
-    aria-label="Nová úloha"
+    [attr.aria-label]="label()"
   />
   <button type="submit" [disabled]="!title().trim()">Pridať</button>
 </form>

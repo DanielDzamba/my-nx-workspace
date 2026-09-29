@@ -1,4 +1,4 @@
-import { ApplicationRef } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import {
@@ -6,7 +6,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { API_BASE_URL } from '../../shared/util';
-import { AdminTodo } from './todo';
+import { AdminTodo, Page } from './todo';
 import { AdminTodoStore } from './admin-todo-store';
 
 const milk: AdminTodo = {
@@ -17,11 +17,25 @@ const milk: AdminTodo = {
   ownerId: 'auth0|alice',
 };
 
+function page(content: AdminTodo[], totalElements: number): Page<AdminTodo> {
+  return {
+    content,
+    page: {
+      size: 20,
+      number: 0,
+      totalElements,
+      totalPages: Math.ceil(totalElements / 20),
+    },
+  };
+}
+
 describe('AdminTodoStore', () => {
   let http: HttpTestingController;
   let store: InstanceType<typeof AdminTodoStore>;
+  const pageIndex = signal(0);
 
   beforeEach(() => {
+    pageIndex.set(0);
     TestBed.configureTestingModule({
       providers: [
         AdminTodoStore,
@@ -32,32 +46,43 @@ describe('AdminTodoStore', () => {
     });
     http = TestBed.inject(HttpTestingController);
     store = TestBed.inject(AdminTodoStore);
+    TestBed.runInInjectionContext(() => store.connectPage(pageIndex));
     TestBed.tick();
   });
 
   afterEach(() => http.verify());
 
-  it('loads the todos of all users and counts the owners', async () => {
-    http
-      .expectOne('https://api.test/api/admin/todos')
-      .flush([
-        milk,
-        { ...milk, id: 2, title: 'Read' },
-        { ...milk, id: 3, ownerId: 'auth0|bob' },
-      ]);
+  async function settle() {
     await TestBed.inject(ApplicationRef).whenStable();
+  }
 
-    expect(store.todos().map((todo) => todo.id)).toEqual([1, 2, 3]);
-    expect(store.ownerCount()).toBe(2);
+  it('loads a page of all users todos and follows the page index', async () => {
+    http
+      .expectOne('https://api.test/api/admin/todos?page=0')
+      .flush(page([milk, { ...milk, id: 2, ownerId: 'auth0|bob' }], 25));
+    await settle();
+
+    expect(store.todos().map((todo) => todo.id)).toEqual([1, 2]);
+    expect(store.totalElements()).toBe(25);
+    expect(store.totalPages()).toBe(2);
+
+    pageIndex.set(1);
+    TestBed.tick();
+    http
+      .expectOne('https://api.test/api/admin/todos?page=1')
+      .flush(page([{ ...milk, id: 21 }], 25));
+    await settle();
+
+    expect(store.todos().map((todo) => todo.id)).toEqual([21]);
   });
 
   it('exposes a failed request as an error', async () => {
     http
-      .expectOne('https://api.test/api/admin/todos')
+      .expectOne('https://api.test/api/admin/todos?page=0')
       .flush('forbidden', { status: 403, statusText: 'Forbidden' });
-    await TestBed.inject(ApplicationRef).whenStable();
+    await settle();
 
-    expect(store.todosError()).toBeTruthy();
+    expect(store.todoPageError()).toBeTruthy();
     expect(store.todos()).toEqual([]);
   });
 });
