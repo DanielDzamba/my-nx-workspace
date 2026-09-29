@@ -19,7 +19,22 @@
   Zrušiť
 </button>
 } @else {
-<span class="title" (dblclick)="editStart.emit()">{{ todo().title }}</span>
+<!-- queryParamsHandling keeps the list's filter in the URL, so "back" returns to the same list -->
+<a
+  class="title"
+  [routerLink]="urls.todoDetail(todo().id)"
+  queryParamsHandling="preserve"
+  >{{ todo().title }}</a
+>
+@if (todo().subtaskCount) {
+<span
+  class="subtasks"
+  [attr.aria-label]="
+    'Podúlohy: ' + todo().completedSubtaskCount + ' z ' + todo().subtaskCount
+  "
+  >{{ todo().completedSubtaskCount }}/{{ todo().subtaskCount }}</span
+>
+}
 <button type="button" class="secondary" (click)="editStart.emit()">
   Upraviť
 </button>

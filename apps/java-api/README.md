@@ -26,6 +26,8 @@ npx nx clean java-api
 
 - Schema changes are Flyway migrations in `src/main/resources/db/migration` (`V1__create_todo.sql`, `V2__...`). Hibernate only validates the schema (`ddl-auto=validate`).
 - Never edit a migration that has already run; add a new one.
+- `V4` enables the `pg_trgm` extension (title search index). PostgreSQL images and Neon ship it; the migration user needs the right to `CREATE EXTENSION` (Neon's owner role has it).
+- Query performance (paging, N+1, EXPLAIN, open-in-view): [docs/java-api/data-access.md](../../docs/java-api/data-access.md).
 - Local credentials (`java_api` / `java_api`) are for development only.
 
 ## Docker image
@@ -58,8 +60,10 @@ docker build -t java-api .                 # image only
 ## Endpoints
 
 - `GET /api/hello?name=Nx` → `{"message":"Hello, Nx!"}`
-- `GET|POST /api/todos`, `GET|PUT|DELETE /api/todos/{id}` — todos of the signed-in user (owner = `sub` of the access token); another user's todo answers 404
-- `GET /api/admin/todos` — todos of all users with `ownerId`; role `ADMIN` only (401 without a token, 403 without the role)
+- `GET /api/todos?status=all|active|completed&q=milk&page=0&size=10&sort=createdAt,desc` — one page of the signed-in user's todos (owner = `sub` of the access token), each with `subtaskCount` / `completedSubtaskCount`. Sortable by `createdAt` or `title`; `size` is capped at 100. Response: `{"content": [...], "page": {"size", "number", "totalElements", "totalPages"}}` (Spring Data `PagedModel`)
+- `POST /api/todos`, `PUT|DELETE /api/todos/{id}`; `GET /api/todos/{id}` returns the todo with its `subtasks`. Another user's todo answers 404
+- `POST /api/todos/{id}/subtasks`, `PUT|DELETE /api/todos/{id}/subtasks/{subtaskId}` — subtasks of an own todo
+- `GET /api/admin/todos?page=&size=&sort=` — one page of all users' todos with `ownerId` (default 20, newest first); role `ADMIN` only (401 without a token, 403 without the role)
 - `GET /actuator/health` (includes the database), `/actuator/health/liveness`, `/actuator/health/readiness`
 
 ## Roles (Auth0)

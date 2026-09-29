@@ -1,0 +1,68 @@
+<section class="todo-detail">
+  <!-- preserve: the list's filter travelled here in the URL and goes back with this link -->
+  <a [routerLink]="urls.todos" queryParamsHandling="preserve"
+    >← Späť na zoznam</a
+  >
+
+  @if (error(); as message) {
+  <p class="error" role="alert">{{ message }}</p>
+  } @if (store.todoIsLoading()) {
+  <p class="muted">Načítavam…</p>
+  } @else { @if (store.todo(); as todo) {
+  <h1>Detail úlohy</h1>
+
+  <form class="title-form" (ngSubmit)="saveTitle(todo)">
+    <input
+      name="title"
+      [(ngModel)]="titleDraft"
+      maxlength="200"
+      autocomplete="off"
+      aria-label="Názov úlohy"
+    />
+    <button type="submit" [disabled]="titleDraft().trim() === todo.title">
+      Uložiť
+    </button>
+  </form>
+
+  <label class="completed">
+    <input type="checkbox" [checked]="todo.completed" (change)="toggle(todo)" />
+    Hotovo
+  </label>
+  <p class="muted">Vytvorená {{ todo.createdAt | date: 'd.M.yyyy HH:mm' }}</p>
+
+  <h2>Podúlohy</h2>
+  <app-todo-add-form
+    label="Nová podúloha"
+    placeholder="Pridať podúlohu"
+    [(title)]="newSubtaskTitle"
+    (add)="addSubtask(todo, $event)"
+  />
+  <ul class="subtasks">
+    @for (subtask of todo.subtasks; track subtask.id) {
+    <li [class.done]="subtask.completed">
+      <input
+        type="checkbox"
+        [checked]="subtask.completed"
+        (change)="toggleSubtask(todo, subtask)"
+        [attr.aria-label]="'Hotovo: ' + subtask.title"
+      />
+      <span class="subtask-title">{{ subtask.title }}</span>
+      <button
+        type="button"
+        class="danger"
+        (click)="removeSubtask(todo, subtask)"
+        [attr.aria-label]="'Zmazať podúlohu ' + subtask.title"
+      >
+        Zmazať
+      </button>
+    </li>
+    } @empty {
+    <li class="muted">Žiadne podúlohy.</li>
+    }
+  </ul>
+
+  <button type="button" class="danger delete-todo" (click)="remove(todo)">
+    Zmazať úlohu
+  </button>
+  } }
+</section>

@@ -75,8 +75,10 @@ class TodoControllerTests {
 
 		mockMvc.perform(get("/api/todos"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$", hasSize(1)))
-			.andExpect(jsonPath("$[0].title").value("Buy milk"));
+			.andExpect(jsonPath("$.content", hasSize(1)))
+			.andExpect(jsonPath("$.content[0].title").value("Buy milk"))
+			.andExpect(jsonPath("$.content[0].subtaskCount").value(0))
+			.andExpect(jsonPath("$.page.totalElements").value(1));
 	}
 
 	@Test
@@ -93,11 +95,11 @@ class TodoControllerTests {
 		this.repository.save(new Todo(BOB, "Bob todo", false));
 
 		mockMvc.perform(get("/api/todos"))
-			.andExpect(jsonPath("$", hasSize(1)))
-			.andExpect(jsonPath("$[0].title").value("Alice todo"));
+			.andExpect(jsonPath("$.content", hasSize(1)))
+			.andExpect(jsonPath("$.content[0].title").value("Alice todo"));
 		mockMvc.perform(get("/api/todos").with(as(BOB)))
-			.andExpect(jsonPath("$", hasSize(1)))
-			.andExpect(jsonPath("$[0].title").value("Bob todo"));
+			.andExpect(jsonPath("$.content", hasSize(1)))
+			.andExpect(jsonPath("$.content[0].title").value("Bob todo"));
 	}
 
 	@Test

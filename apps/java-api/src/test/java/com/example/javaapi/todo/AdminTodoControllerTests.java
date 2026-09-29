@@ -58,10 +58,31 @@ class AdminTodoControllerTests {
 
 		mockMvc.perform(get("/api/admin/todos").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$", hasSize(2)))
-			.andExpect(jsonPath("$[0].title").value("Alice todo"))
-			.andExpect(jsonPath("$[0].ownerId").value("auth0|alice"))
-			.andExpect(jsonPath("$[1].ownerId").value("auth0|bob"));
+			.andExpect(jsonPath("$.content", hasSize(2)))
+			// Newest first
+			.andExpect(jsonPath("$.content[0].title").value("Bob todo"))
+			.andExpect(jsonPath("$.content[0].ownerId").value("auth0|bob"))
+			.andExpect(jsonPath("$.content[1].ownerId").value("auth0|alice"))
+			.andExpect(jsonPath("$.page.size").value(20))
+			.andExpect(jsonPath("$.page.totalElements").value(2));
+	}
+
+	@Test
+	void pagesTheOverview() throws Exception {
+		for (int i = 1; i <= 3; i++) {
+			this.repository.save(new Todo("auth0|user" + i, "Todo " + i, false));
+		}
+
+		mockMvc
+			.perform(get("/api/admin/todos").param("size", "2")
+				.param("page", "1")
+				.param("sort", "title,asc")
+				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content", hasSize(1)))
+			.andExpect(jsonPath("$.content[0].title").value("Todo 3"))
+			.andExpect(jsonPath("$.page.number").value(1))
+			.andExpect(jsonPath("$.page.totalPages").value(2));
 	}
 
 }

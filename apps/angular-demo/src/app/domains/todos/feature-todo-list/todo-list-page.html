@@ -3,10 +3,13 @@
   <h1>TODO list</h1>
 
   <app-todo-add-form [(title)]="newTitle" (add)="add($event)" />
+  <app-todo-filter [query]="query()" (queryChange)="navigate($event)" />
 
   @if (error(); as message) {
   <p class="error" role="alert">{{ message }}</p>
-  } @if (store.todosIsLoading()) {
+  }
+  <!-- 'loading' = first load or a different query; 'reloading' (after a change) keeps the list -->
+  @if (store.todoPageStatus() === 'loading') {
   <p class="muted">Načítavam…</p>
   } @else {
   <ul class="todo-list">
@@ -23,13 +26,20 @@
       />
     </li>
     } @empty {
-    <li class="muted">Zatiaľ žiadne úlohy.</li>
+    <li class="muted">
+      {{ isFiltered() ? 'Žiadna úloha nezodpovedá filtru.' : 'Zatiaľ žiadne
+      úlohy.' }}
+    </li>
     }
   </ul>
 
-  @if (store.todos().length) {
-  <p class="muted">
-    Zostáva: {{ store.remaining() }} z {{ store.todos().length }}
-  </p>
+  <app-pager
+    [page]="query().page"
+    [totalPages]="store.totalPages()"
+    (pageChange)="goToPage($event)"
+  />
+
+  @if (store.totalElements()) {
+  <p class="muted">Počet úloh: {{ store.totalElements() }}</p>
   } }
 </section>

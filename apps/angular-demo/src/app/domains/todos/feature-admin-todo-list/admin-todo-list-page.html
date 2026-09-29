@@ -4,7 +4,7 @@
 
   @if (error(); as message) {
   <p class="error" role="alert">{{ message }}</p>
-  } @else if (store.todosIsLoading()) {
+  } @else if (store.todoPageIsLoading()) {
   <p class="muted">Načítavam…</p>
   } @else {
   <table>
@@ -32,10 +32,13 @@
     </tbody>
   </table>
 
-  @if (store.todos().length) {
-  <p class="muted">
-    Spolu: {{ store.todos().length }} úloh od {{ store.ownerCount() }}
-    vlastníkov
-  </p>
+  <app-pager
+    [page]="pageIndex()"
+    [totalPages]="store.totalPages()"
+    (pageChange)="goToPage($event)"
+  />
+
+  @if (store.totalElements()) {
+  <p class="muted">Spolu: {{ store.totalElements() }} úloh</p>
   } }
 </section>

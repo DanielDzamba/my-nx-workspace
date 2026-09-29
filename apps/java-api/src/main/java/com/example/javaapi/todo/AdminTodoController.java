@@ -1,7 +1,9 @@
 package com.example.javaapi.todo;
 
-import java.util.List;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedModel;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,9 +24,11 @@ public class AdminTodoController {
 		this.service = service;
 	}
 
+	/** One page of all users' todos, newest first; same paging parameters as {@code /api/todos}. */
 	@GetMapping
-	public List<AdminTodoResponse> list() {
-		return this.service.findAllOwners();
+	public PagedModel<AdminTodoResponse> list(
+			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+		return new PagedModel<>(this.service.findAllOwners(pageable));
 	}
 
 }
