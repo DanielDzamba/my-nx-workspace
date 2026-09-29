@@ -87,7 +87,11 @@ export class TodoDetailPage {
 
   protected async addSubtask(todo: TodoDetail, title: string): Promise<void> {
     const result = await this.store.addSubtask({ todoId: todo.id, title });
-    if (this.handle(result, 'Podúlohu sa nepodarilo pridať.')) {
+    // Only if the input still holds the added title: the user may already be typing the next one
+    if (
+      this.handle(result, 'Podúlohu sa nepodarilo pridať.') &&
+      this.newSubtaskTitle().trim() === title
+    ) {
       this.newSubtaskTitle.set('');
     }
   }

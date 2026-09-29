@@ -203,6 +203,27 @@ describe('TodoDetailPage', () => {
     expect(subtaskTitles()).toEqual(['Book hotel']);
   });
 
+  it('keeps the next subtask title typed while the previous one is being added', async () => {
+    await open();
+    const input = element().querySelector(
+      'app-todo-add-form input'
+    ) as HTMLInputElement;
+    input.value = 'Book hotel';
+    input.dispatchEvent(new Event('input'));
+    harness.detectChanges();
+    button('Pridať').click();
+
+    input.value = 'Buy tickets';
+    input.dispatchEvent(new Event('input'));
+    http
+      .expectOne({ method: 'POST', url: '/api/todos/1/subtasks' })
+      .flush({ ...pack, id: 11, title: 'Book hotel' });
+    await settle();
+
+    expect(subtaskTitles()).toEqual(['Pack', 'Book hotel']);
+    expect(input.value).toBe('Buy tickets');
+  });
+
   it('shows an error when a subtask cannot be removed', async () => {
     await open();
     (

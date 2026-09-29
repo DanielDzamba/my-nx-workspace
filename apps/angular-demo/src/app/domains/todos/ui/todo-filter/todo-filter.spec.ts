@@ -62,6 +62,27 @@ describe('TodoFilter', () => {
     expect(emitted).toEqual([{ ...current, q: 'bread', page: 0 }]);
   });
 
+  it('keeps the typed search when only the status changes', async () => {
+    const input = element.querySelector(
+      'input[type=search]'
+    ) as HTMLInputElement;
+    input.value = 'bread';
+    input.dispatchEvent(new Event('input'));
+
+    fixture.componentRef.setInput('query', {
+      ...current,
+      status: TODO_STATUSES.completed,
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(input.value).toBe('bread');
+
+    fixture.componentRef.setInput('query', { ...current, q: 'cheese' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(input.value).toBe('cheese');
+  });
+
   it('clears the search', () => {
     button('Zrušiť hľadanie').click();
 

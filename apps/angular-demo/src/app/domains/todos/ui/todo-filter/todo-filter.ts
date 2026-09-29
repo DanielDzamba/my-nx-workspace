@@ -43,9 +43,14 @@ export class TodoFilter {
 
   /**
    * Search text being typed; sent only on submit (one request per search, not per keystroke).
-   * Reset whenever the query changes from outside, e.g. by the back button.
+   * Reset when the search in the query changes, e.g. by the back button, but kept when only the
+   * status, sort or page changes, so a status click does not wipe what the user is typing.
    */
-  protected readonly searchDraft = linkedSignal(() => this.query().q);
+  protected readonly searchDraft = linkedSignal<string, string>({
+    source: () => this.query().q,
+    computation: (q, previous) =>
+      previous && previous.source === q ? previous.value : q,
+  });
 
   protected setStatus(status: TodoStatus): void {
     this.emit({ status });

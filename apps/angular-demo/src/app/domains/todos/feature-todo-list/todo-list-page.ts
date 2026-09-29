@@ -82,7 +82,11 @@ export class TodoListPage {
 
   protected async add(title: string): Promise<void> {
     const result = await this.store.addTodo(title);
-    if (this.handle(result, 'Úlohu sa nepodarilo pridať.')) {
+    // Only if the input still holds the added title: the user may already be typing the next one
+    if (
+      this.handle(result, 'Úlohu sa nepodarilo pridať.') &&
+      this.newTitle().trim() === title
+    ) {
       this.newTitle.set('');
     }
   }
