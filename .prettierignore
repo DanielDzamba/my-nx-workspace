@@ -9,4 +9,4 @@
 /.claude/skills/angular-developer
 
 # Generated from api-contract/openapi.yaml (nx generate-api angular-demo)
-/apps/angular-demo/src/app/domains/todos/data/api
+/apps/angular-demo/src/app/domains/*/data/api

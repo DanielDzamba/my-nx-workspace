@@ -28,6 +28,11 @@ tags:
     description: Todos and subtasks of the signed-in user.
   - name: admin
     description: Overview of all users' todos; requires the `ADMIN` role.
+  - name: notifications
+    description: |
+      In-app notifications of the signed-in user. They are created asynchronously: completing a
+      todo publishes a `TodoCompleted` event to RabbitMQ, and a consumer stores the notification,
+      so a new one appears a moment after the request that caused it.
   - name: hello
     description: Smoke-test endpoint.
 
@@ -257,6 +262,33 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/notifications:
+    get:
+      tags: [notifications]
+      operationId: listNotifications
+      summary: The newest notifications of the signed-in user
+      description: At most 20, newest first, with the number of all unread ones.
+      responses:
+        '200':
+          description: The notifications.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/notifications/read-all:
+    post:
+      tags: [notifications]
+      operationId: markAllNotificationsRead
+      summary: Mark all notifications of the signed-in user as read
+      responses:
+        '204':
+          description: Marked as read.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/hello:
     get:
       tags: [hello]
@@ -473,6 +505,43 @@ components:
             $ref: '#/components/schemas/AdminTodoResponse'
         page:
           $ref: '#/components/schemas/PageMetadata'
+
+    NotificationResponse:
+      type: object
+      required: [id, type, todoId, todoTitle, createdAt, read]
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          description: What happened. New types may be added, so clients must ignore unknown ones.
+          enum: [TODO_COMPLETED]
+        todoId:
+          type: integer
+          format: int64
+          description: The todo may have been deleted since.
+        todoTitle:
+          type: string
+          description: Title of the todo when the event happened.
+        createdAt:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+
+    NotificationList:
+      type: object
+      required: [items, unreadCount]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        unreadCount:
+          type: integer
+          format: int64
+          description: All unread notifications, also those not in `items`.
 
     HelloResponse:
       type: object

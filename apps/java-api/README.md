@@ -1,16 +1,16 @@
 # java-api
 
-Spring Boot 4 (Java 21, Maven) API with PostgreSQL, wired into Nx via `project.json`.
+Spring Boot 4 (Java 21, Maven) API with PostgreSQL and RabbitMQ, wired into Nx via `project.json`.
 
 ## Prerequisites
 
 - JDK 21 on `PATH` (or `JAVA_HOME` set). Maven is not required; the Maven wrapper (`mvnw`) downloads it.
-- Docker (Docker Desktop on Windows/macOS) for the local PostgreSQL and for the integration test.
+- Docker (Docker Desktop on Windows/macOS) for the local PostgreSQL and RabbitMQ and for the integration tests.
 
 ## Commands
 
 ```sh
-npx nx serve java-api   # starts PostgreSQL (compose.yaml) + the app on http://localhost:8080
+npx nx serve java-api   # starts PostgreSQL + RabbitMQ (compose.yaml) + the app on http://localhost:8080
 npx nx test java-api    # tests; the Testcontainers test is skipped without Docker
 npx nx build java-api   # jar -> apps/java-api/target/
 npx nx clean java-api
@@ -19,7 +19,7 @@ npx nx clean java-api
 ## API contract (design-first)
 
 The API is defined in [`api-contract/openapi.yaml`](../../api-contract/openapi.yaml), not in the
-controllers. Every `mvn compile` generates the interfaces (`TodosApi`, `AdminApi`, `HelloApi`) and
+controllers. Every `mvn compile` generates the interfaces (`TodosApi`, `AdminApi`, `NotificationsApi`, `HelloApi`) and
 the request/response DTOs into `target/generated-sources/openapi`; the controllers implement them,
 so paths, parameters, defaults and validation come from the contract. Workflow:
 [`api-contract/README.md`](../../api-contract/README.md).
@@ -43,10 +43,26 @@ so paths, parameters, defaults and validation come from the contract. Workflow:
 - Query performance (paging, N+1, EXPLAIN, open-in-view): [docs/java-api/data-access.md](../../docs/java-api/data-access.md).
 - Local credentials (`java_api` / `java_api`) are for development only.
 
+## Messaging (RabbitMQ)
+
+Completing a todo records a `TodoCompleted` event in the outbox table (same transaction); a
+scheduled relay publishes it to RabbitMQ and a listener stores a notification for the owner.
+Concepts (outbox, at-least-once, idempotency, dead-letter queue): [docs/java-api/messaging.md](../../docs/java-api/messaging.md).
+
+| Environment | Where RabbitMQ comes from                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Local run   | `compose.yaml`; management UI http://localhost:15672 (`java_api` / `java_api`)              |
+| Tests       | Testcontainers (`TestcontainersConfiguration`)                                              |
+| Deployed    | CloudAMQP (free plan), `SPRING_RABBITMQ_ADDRESSES=amqps://<user>:<password>@<host>/<vhost>` |
+
+`spring-boot-docker-compose` skips `compose.yaml` when any of its services already runs, so a
+PostgreSQL container started before RabbitMQ was added keeps RabbitMQ down (connection refused,
+then `guest` login failures). Run `docker compose up -d` in `apps/java-api` once and restart the app.
+
 ## Docker image
 
 ```sh
-docker compose --profile full up --build   # PostgreSQL + API container on :8080
+docker compose --profile full up --build   # PostgreSQL + RabbitMQ + API container on :8080
 docker build -t java-api -f Dockerfile ../..  # image only; context is the repo root (needs api-contract/)
 ```
 
@@ -57,6 +73,7 @@ docker build -t java-api -f Dockerfile ../..  # image only; context is the repo 
 | Frontend   | GitHub Pages: https://danieldzamba.github.io/my-nx-workspace/                 | `.github/workflows/deploy-pages.yml` |
 | java-api   | Render (free web service, Docker): https://danieldzamba-java-api.onrender.com | `render.yaml` (Blueprint)            |
 | PostgreSQL | Neon (free, AWS eu-central-1)                                                 | env vars in the Render dashboard     |
+| RabbitMQ   | CloudAMQP (free plan "Little Lemur", EU region)                               | env var in the Render dashboard      |
 
 - Render deploys a commit on `main` once CI has passed on it (`autoDeployTrigger: checksPass`).
 - The free service sleeps after 15 minutes without traffic; the first request then waits for the app to start (up to about a minute). Neon suspends the database after 5 idle minutes and resumes it on the next connection.
@@ -67,6 +84,7 @@ docker build -t java-api -f Dockerfile ../..  # image only; context is the repo 
 | Env var                                             | Purpose                                                   |
 | --------------------------------------------------- | --------------------------------------------------------- |
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | database connection                                       |
+| `SPRING_RABBITMQ_ADDRESSES`                         | broker URL from CloudAMQP (`amqps://...`)                 |
 | `APP_CORS_ALLOWED_ORIGINS`                          | frontend origin(s), e.g. `https://danieldzamba.github.io` |
 | `PORT`                                              | HTTP port if the host injects one (default 8080)          |
 
@@ -77,7 +95,8 @@ docker build -t java-api -f Dockerfile ../..  # image only; context is the repo 
 - `POST /api/todos`, `PUT|DELETE /api/todos/{id}`; `GET /api/todos/{id}` returns the todo with its `subtasks`. Another user's todo answers 404
 - `POST /api/todos/{id}/subtasks`, `PUT|DELETE /api/todos/{id}/subtasks/{subtaskId}` — subtasks of an own todo
 - `GET /api/admin/todos?page=&size=&sort=` — one page of all users' todos with `ownerId` (default 20, newest first); role `ADMIN` only (401 without a token, 403 without the role)
-- `GET /actuator/health` (includes the database), `/actuator/health/liveness`, `/actuator/health/readiness`
+- `GET /api/notifications` — the signed-in user's newest 20 notifications and `unreadCount`; `POST /api/notifications/read-all` marks all as read. Created asynchronously when a todo becomes completed
+- `GET /actuator/health` (includes the database and RabbitMQ), `/actuator/health/liveness`, `/actuator/health/readiness`
 
 ## Roles (Auth0)
 

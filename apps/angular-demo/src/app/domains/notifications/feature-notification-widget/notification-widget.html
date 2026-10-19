@@ -1,0 +1,49 @@
+@if (auth.isAuthenticated()) {
+<button
+  type="button"
+  class="bell"
+  [attr.aria-label]="bellLabel()"
+  [attr.aria-expanded]="open()"
+  (click)="toggle()"
+>
+  <span aria-hidden="true">🔔</span>
+  @if (store.unreadCount()) {
+  <span class="badge" aria-hidden="true">{{ store.unreadCount() }}</span>
+  }
+</button>
+
+@if (open()) {
+<section class="panel" aria-label="Notifikácie">
+  <header>
+    <h2>Notifikácie</h2>
+    @if (store.unreadCount()) {
+    <button
+      type="button"
+      [disabled]="store.markAllReadIsPending()"
+      (click)="markAllRead()"
+    >
+      Označiť ako prečítané
+    </button>
+    }
+  </header>
+
+  @if (error(); as message) {
+  <p class="error" role="alert">{{ message }}</p>
+  }
+
+  <ul>
+    @for (notification of store.notifications(); track notification.id) {
+    <li [class.unread]="!notification.read">
+      <a [routerLink]="urls.todoDetail(notification.todoId)" (click)="close()">
+        Dokončená úloha: {{ notification.todoTitle }}
+      </a>
+      <time [attr.datetime]="notification.createdAt">
+        {{ notification.createdAt | date: 'd.M.yyyy HH:mm' }}
+      </time>
+    </li>
+    } @empty {
+    <li class="muted">Zatiaľ žiadne notifikácie.</li>
+    }
+  </ul>
+</section>
+} }

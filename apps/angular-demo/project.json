@@ -12,14 +12,21 @@
       "cache": true,
       "inputs": [
         "{workspaceRoot}/api-contract/openapi.yaml",
-        "{projectRoot}/ng-openapi-gen.json",
+        "{projectRoot}/ng-openapi-gen*.json",
         {
           "externalDependencies": ["ng-openapi-gen"]
         }
       ],
-      "outputs": ["{projectRoot}/src/app/domains/todos/data/api"],
+      "outputs": [
+        "{projectRoot}/src/app/domains/todos/data/api",
+        "{projectRoot}/src/app/domains/notifications/data/api"
+      ],
       "options": {
-        "command": "ng-openapi-gen -c ng-openapi-gen.json",
+        "commands": [
+          "ng-openapi-gen -c ng-openapi-gen.json",
+          "ng-openapi-gen -c ng-openapi-gen.notifications.json"
+        ],
+        "parallel": false,
         "cwd": "apps/angular-demo"
       }
     },

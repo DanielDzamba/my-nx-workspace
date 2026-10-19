@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/ng-openapi-gen/ng-openapi-gen-schema.json",
+  "input": "../../api-contract/openapi.yaml",
+  "output": "src/app/domains/notifications/data/api",
+  "includeTags": ["notifications"],
+  "apiService": false,
+  "module": false,
+  "silent": true
+}
