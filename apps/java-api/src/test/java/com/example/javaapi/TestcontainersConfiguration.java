@@ -4,10 +4,11 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 /**
- * Throwaway PostgreSQL for tests. Requires a running Docker daemon.
- * Keep the image in sync with compose.yaml.
+ * Throwaway PostgreSQL and RabbitMQ for tests. Requires a running Docker daemon.
+ * Keep the images in sync with compose.yaml.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
@@ -16,6 +17,12 @@ public class TestcontainersConfiguration {
 	@ServiceConnection
 	PostgreSQLContainer postgresContainer() {
 		return new PostgreSQLContainer("postgres:17-alpine");
+	}
+
+	@Bean
+	@ServiceConnection
+	RabbitMQContainer rabbitContainer() {
+		return new RabbitMQContainer("rabbitmq:4-management-alpine");
 	}
 
 }

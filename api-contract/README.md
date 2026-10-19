@@ -10,9 +10,10 @@ generated from it, never the other way round.
    mvn compile (generate-sources)          nx generate-api angular-demo
    openapi-generator-maven-plugin          ng-openapi-gen
                 |                                    |
-   TodosApi, AdminApi, HelloApi            fn/* functions + models
-   + request/response DTOs                 apps/angular-demo/src/app/domains/todos/data/api
-   apps/java-api/target/generated-sources  (git-ignored)
+   TodosApi, AdminApi,                     fn/* functions + models, per domain:
+   NotificationsApi, HelloApi              apps/angular-demo/src/app/domains/<domain>/data/api
+   + request/response DTOs                 (tags per ng-openapi-gen*.json, git-ignored)
+   apps/java-api/target/generated-sources
                 |                                    |
    TodoController implements TodosApi      TodoClient calls the functions
 ```
@@ -33,7 +34,9 @@ before every compile, Nx before `build`, `serve`, `test`, `typecheck` and `lint`
    controller no longer compiles until it implements the new method; implement it there. In the IDE,
    reload the Maven project so it sees `target/generated-sources/openapi`.
 4. **Frontend.** `npx nx generate-api angular-demo` (also runs on `serve`/`test`/`build`). Add the
-   call to the domain client (`TodoClient`) and, if needed, a type alias in `data/todo.ts`.
+   call to the domain client (`TodoClient`) and, if needed, a type alias in `data/todo.ts`. A new
+   tag goes into the `includeTags` of the domain's `ng-openapi-gen*.json` (a new domain gets its
+   own config and a command in the `generate-api` target).
    The frontend does not wait for the backend: its unit tests flush mocked responses typed by the
    generated models.
 

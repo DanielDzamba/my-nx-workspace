@@ -21,7 +21,8 @@ apps/angular-demo/src/
 mylib/src                       workspace library, treated as shared/ui
 ```
 
-Only create the layers a domain needs. Current reference domain: `todos`.
+Only create the layers a domain needs. Current reference domain: `todos`. `notifications` has only
+`data` and `feature-notification-widget` (the bell, placed in `app.html`).
 
 ## Dependency rules
 
@@ -52,11 +53,13 @@ model and `TodoStore`, but not `TodoClient`, so features cannot bypass the store
 
 The generated API client (`data/api`) is such a detail: only the domain client (`TodoClient`) calls
 its functions, and `data/todo.ts` re-exports its models as the domain types (`Todo`, `TodoSummary`,
-...). Never hand-write API types in the frontend; change `api-contract/openapi.yaml` instead.
+...). Each domain generates only its own tags into its own `data/api` (one `ng-openapi-gen*.json`
+per domain), so domains never share generated code. Never hand-write API types in the frontend; change `api-contract/openapi.yaml` instead.
 
 ## Naming
 
-- Smart components (in `feature-*`) end with `Page`, `Search`, `Detail` or `Edit` and are the only
+- Smart components (in `feature-*`) end with `Page`, `Search`, `Detail` or `Edit` (routed) or
+  `Widget` (placed by the app shell on every page, e.g. `NotificationWidget`) and are the only
   components that inject stores. Files: `todo-list-page.ts`, class `TodoListPage`.
 - Presentational components (in `ui`) have no suffix: `TodoItem`, `TodoAddForm`. They use
   `input()` / `output()` / `model()` only.

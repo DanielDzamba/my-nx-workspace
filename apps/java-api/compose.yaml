@@ -2,7 +2,7 @@
 #
 # `npx nx serve java-api` starts the postgres service automatically (spring-boot-docker-compose),
 # so you rarely need to run this by hand. Useful commands, from apps/java-api:
-#   docker compose up -d --wait          # start only PostgreSQL
+#   docker compose up -d --wait          # start PostgreSQL and RabbitMQ
 #   docker compose --profile full up --build   # PostgreSQL + the API as a container
 #   docker compose down                  # stop (data is kept in the volume)
 #   docker compose down -v               # stop and wipe the database
@@ -27,6 +27,25 @@ services:
       timeout: 5s
       retries: 10
 
+  # Message broker for the TodoCompleted events. Management UI: http://localhost:15672
+  # (login java_api / java_api): exchanges, queues, the dead-letter queue and message rates.
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      # Development-only credentials
+      RABBITMQ_DEFAULT_USER: java_api
+      RABBITMQ_DEFAULT_PASS: java_api
+    ports:
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672'
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   api:
     profiles: [full]
     # Repository root as context: the build needs api-contract/ (see Dockerfile)
@@ -37,11 +56,15 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/java_api
       SPRING_DATASOURCE_USERNAME: java_api
       SPRING_DATASOURCE_PASSWORD: java_api
+      SPRING_RABBITMQ_ADDRESSES: amqp://java_api:java_api@rabbitmq:5672
     ports:
       - '127.0.0.1:8080:8080'
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres-data:
+  rabbitmq-data:

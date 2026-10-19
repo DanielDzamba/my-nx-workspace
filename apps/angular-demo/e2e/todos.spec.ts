@@ -15,12 +15,22 @@ interface Todo {
   subtasks: Subtask[];
 }
 
+interface Notification {
+  id: number;
+  type: 'TODO_COMPLETED';
+  todoId: number;
+  todoTitle: string;
+  createdAt: string;
+  read: boolean;
+}
+
 const PAGE_SIZE = 10;
 
 /**
  * In-memory stand-in for java-api, so the e2e run needs neither the backend nor PostgreSQL.
  * Implements what the frontend uses: paged list with status and title filter (newest first),
- * detail with subtasks, and the mutations.
+ * detail with subtasks, the mutations, and the notifications that completing a todo creates
+ * (on the real backend asynchronously, via RabbitMQ).
  */
 async function mockTodoApi(
   page: Page,
@@ -28,6 +38,7 @@ async function mockTodoApi(
 ): Promise<void> {
   const todos: Todo[] = initial.map((todo) => ({ ...todo, subtasks: [] }));
   let nextId = Math.max(0, ...todos.map((t) => t.id)) + 1;
+  const notifications: Notification[] = [];
 
   function listPage(url: URL) {
     const status = url.searchParams.get('status');
@@ -119,15 +130,41 @@ async function mockTodoApi(
         todos.push(todo);
         return route.fulfill({ status: 201, json: withoutSubtasks(todo) });
       }
-      case 'PUT':
+      case 'PUT': {
+        const wasCompleted = todos[index].completed;
         todos[index] = { ...todos[index], ...request.postDataJSON() };
+        if (!wasCompleted && todos[index].completed) {
+          notifications.unshift({
+            id: nextId++,
+            type: 'TODO_COMPLETED',
+            todoId: todos[index].id,
+            todoTitle: todos[index].title,
+            createdAt: new Date().toISOString(),
+            read: false,
+          });
+        }
         return route.fulfill({ json: withoutSubtasks(todos[index]) });
+      }
       case 'DELETE':
         todos.splice(index, 1);
         return route.fulfill({ status: 204 });
       default:
         return route.fallback();
     }
+  });
+
+  await page.route('**/api/notifications**', (route) => {
+    if (route.request().method() === 'POST') {
+      // POST /api/notifications/read-all
+      notifications.forEach((n) => (n.read = true));
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({
+      json: {
+        items: notifications,
+        unreadCount: notifications.filter((n) => !n.read).length,
+      },
+    });
   });
 }
 
@@ -193,6 +230,45 @@ test('adds, completes and deletes a todo', async ({ page }) => {
     .click();
   await expect(page.getByText('Kúpiť mlieko')).toHaveCount(0);
   await expect(page.getByText('Počet úloh: 1')).toBeVisible();
+});
+
+test('notifies about a completed todo', async ({ page }) => {
+  await mockTodoApi(page, [
+    {
+      id: 1,
+      title: 'Kúpiť mlieko',
+      completed: false,
+      createdAt: '2026-01-01T00:00:00Z',
+    },
+  ]);
+  await login(page);
+  await expect(
+    page.getByRole('button', { name: 'Notifikácie', exact: true })
+  ).toBeVisible();
+
+  await page.getByLabel('Hotovo: Kúpiť mlieko').check();
+  await expect(page.getByLabel('Hotovo: Kúpiť mlieko')).toBeChecked();
+
+  // Opening the panel loads the list without waiting for the next poll
+  await page.getByRole('button', { name: /^Notifikácie/ }).click();
+  const panel = page.getByRole('region', { name: 'Notifikácie' });
+  await expect(
+    panel.getByRole('link', { name: 'Dokončená úloha: Kúpiť mlieko' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Notifikácie, neprečítané: 1' })
+  ).toBeVisible();
+
+  await panel.getByRole('button', { name: 'Označiť ako prečítané' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Notifikácie', exact: true })
+  ).toBeVisible();
+
+  await panel
+    .getByRole('link', { name: 'Dokončená úloha: Kúpiť mlieko' })
+    .click();
+  await expect(page).toHaveURL(/\/todos\/1$/);
+  await expect(page.getByLabel('Názov úlohy')).toHaveValue('Kúpiť mlieko');
 });
 
 test('filters, searches and pages through the URL', async ({ page }) => {

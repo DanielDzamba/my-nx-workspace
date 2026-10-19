@@ -30,6 +30,10 @@ services:
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
+      # RabbitMQ on CloudAMQP (free plan), entered in the Render dashboard (never committed):
+      # amqps://<user>:<password>@<host>/<vhost> - amqps turns on TLS
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://danieldzamba.github.io
       # Swagger UI is for development; the contract itself stays readable at /openapi.yaml

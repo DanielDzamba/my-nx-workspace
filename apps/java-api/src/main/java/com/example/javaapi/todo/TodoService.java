@@ -1,5 +1,6 @@
 package com.example.javaapi.todo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -20,6 +21,8 @@ import com.example.javaapi.api.model.TodoDetailResponse;
 import com.example.javaapi.api.model.TodoRequest;
 import com.example.javaapi.api.model.TodoResponse;
 import com.example.javaapi.api.model.TodoSummaryResponse;
+import com.example.javaapi.messaging.TodoCompletedEvent;
+import com.example.javaapi.outbox.Outbox;
 
 /**
  * Every method works on the todos of one owner (the signed-in user). A todo of another user
@@ -37,9 +40,12 @@ public class TodoService {
 
 	private final SubtaskRepository subtaskRepository;
 
-	TodoService(TodoRepository repository, SubtaskRepository subtaskRepository) {
+	private final Outbox outbox;
+
+	TodoService(TodoRepository repository, SubtaskRepository subtaskRepository, Outbox outbox) {
 		this.repository = repository;
 		this.subtaskRepository = subtaskRepository;
+		this.outbox = outbox;
 	}
 
 	/**
@@ -69,12 +75,23 @@ public class TodoService {
 		return TodoMapper.toResponse(this.repository.save(todo));
 	}
 
+	/**
+	 * Marking a todo as completed (only the change from open to completed) records a
+	 * {@link TodoCompletedEvent} in the outbox, in this same transaction: the event exists if and
+	 * only if the change is committed. Consumers (notifications) handle it later, asynchronously, so
+	 * this request neither waits for them nor fails when they or the broker do.
+	 */
 	@Transactional
 	public TodoResponse update(String ownerId, long id, TodoRequest request) {
 		Todo todo = getTodo(ownerId, id);
+		boolean wasCompleted = todo.isCompleted();
 		todo.setTitle(request.getTitle().strip());
 		if (request.getCompleted() != null) {
 			todo.setCompleted(request.getCompleted());
+		}
+		if (!wasCompleted && todo.isCompleted()) {
+			this.outbox.record("Todo", todo.getId(), TodoCompletedEvent.TYPE,
+					new TodoCompletedEvent(todo.getId(), ownerId, todo.getTitle(), Instant.now()));
 		}
 		return TodoMapper.toResponse(todo);
 	}

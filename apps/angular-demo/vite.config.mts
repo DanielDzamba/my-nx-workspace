@@ -31,7 +31,7 @@ export default defineConfig(() => ({
         'src/test-setup.ts',
         'src/**/*.spec.ts',
         // Generated from api-contract/openapi.yaml
-        'src/app/domains/todos/data/api/**',
+        'src/app/domains/*/data/api/**',
       ],
       thresholds: {
         statements: 80,
