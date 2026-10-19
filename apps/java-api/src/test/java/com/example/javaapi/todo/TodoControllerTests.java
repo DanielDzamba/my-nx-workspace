@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -163,6 +164,18 @@ class TodoControllerTests {
 		mockMvc.perform(put("/api/todos/{id}", 999_999).contentType(MediaType.APPLICATION_JSON).content("""
 				{"title": "x"}""")).andExpect(status().isNotFound());
 		mockMvc.perform(delete("/api/todos/{id}", 999_999)).andExpect(status().isNotFound());
+	}
+
+	/** Error bodies are RFC 9457 Problem Details, as the contract declares. */
+	@Test
+	void describesErrorsAsProblemDetails() throws Exception {
+		mockMvc.perform(get("/api/todos/{id}", 999_999))
+			.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+			.andExpect(jsonPath("$.status").value(404))
+			.andExpect(jsonPath("$.detail").value("Todo 999999 not found"));
+		mockMvc.perform(post("/api/todos").contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": ""}""")).andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+			.andExpect(jsonPath("$.status").value(400));
 	}
 
 	@Test

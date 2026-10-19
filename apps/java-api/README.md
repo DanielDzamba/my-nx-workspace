@@ -16,6 +16,19 @@ npx nx build java-api   # jar -> apps/java-api/target/
 npx nx clean java-api
 ```
 
+## API contract (design-first)
+
+The API is defined in [`api-contract/openapi.yaml`](../../api-contract/openapi.yaml), not in the
+controllers. Every `mvn compile` generates the interfaces (`TodosApi`, `AdminApi`, `HelloApi`) and
+the request/response DTOs into `target/generated-sources/openapi`; the controllers implement them,
+so paths, parameters, defaults and validation come from the contract. Workflow:
+[`api-contract/README.md`](../../api-contract/README.md).
+
+- Swagger UI: http://localhost:8080/swagger-ui.html shows the contract (served as `/openapi.yaml`);
+  nothing is generated from the code (`springdoc.api-docs.enabled=false`).
+- IDE errors like "cannot resolve `com.example.javaapi.api`": reload the Maven project after a
+  build, so the IDE picks up the generated sources.
+
 ## Database
 
 | Environment | Where PostgreSQL comes from                                                                                             |
@@ -34,7 +47,7 @@ npx nx clean java-api
 
 ```sh
 docker compose --profile full up --build   # PostgreSQL + API container on :8080
-docker build -t java-api .                 # image only
+docker build -t java-api -f Dockerfile ../..  # image only; context is the repo root (needs api-contract/)
 ```
 
 ## Deployment

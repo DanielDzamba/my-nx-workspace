@@ -13,6 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.javaapi.api.model.AdminTodoResponse;
+import com.example.javaapi.api.model.SubtaskRequest;
+import com.example.javaapi.api.model.SubtaskResponse;
+import com.example.javaapi.api.model.TodoDetailResponse;
+import com.example.javaapi.api.model.TodoRequest;
+import com.example.javaapi.api.model.TodoResponse;
+import com.example.javaapi.api.model.TodoSummaryResponse;
+
 /**
  * Every method works on the todos of one owner (the signed-in user). A todo of another user
  * answers 404 like a missing one, so the API does not reveal which IDs exist (IDOR protection).
@@ -46,29 +54,29 @@ public class TodoService {
 		Page<Todo> page = this.repository.findAll(filter, TodoPaging.withStableSort(pageable));
 		Map<Long, SubtaskCounts> counts = subtaskCounts(page.getContent());
 		return page
-			.map((todo) -> TodoSummaryResponse.from(todo, counts.getOrDefault(todo.getId(), SubtaskCounts.NONE)));
+			.map((todo) -> TodoMapper.toSummary(todo, counts.getOrDefault(todo.getId(), SubtaskCounts.NONE)));
 	}
 
 	public TodoDetailResponse findById(String ownerId, long id) {
 		return this.repository.findWithSubtasksByIdAndOwnerId(id, ownerId)
-			.map(TodoDetailResponse::from)
+			.map(TodoMapper::toDetail)
 			.orElseThrow(() -> todoNotFound(id));
 	}
 
 	@Transactional
 	public TodoResponse create(String ownerId, TodoRequest request) {
-		Todo todo = new Todo(ownerId, request.title().strip(), Boolean.TRUE.equals(request.completed()));
-		return TodoResponse.from(this.repository.save(todo));
+		Todo todo = new Todo(ownerId, request.getTitle().strip(), Boolean.TRUE.equals(request.getCompleted()));
+		return TodoMapper.toResponse(this.repository.save(todo));
 	}
 
 	@Transactional
 	public TodoResponse update(String ownerId, long id, TodoRequest request) {
 		Todo todo = getTodo(ownerId, id);
-		todo.setTitle(request.title().strip());
-		if (request.completed() != null) {
-			todo.setCompleted(request.completed());
+		todo.setTitle(request.getTitle().strip());
+		if (request.getCompleted() != null) {
+			todo.setCompleted(request.getCompleted());
 		}
-		return TodoResponse.from(todo);
+		return TodoMapper.toResponse(todo);
 	}
 
 	@Transactional
@@ -80,18 +88,18 @@ public class TodoService {
 	@Transactional
 	public SubtaskResponse addSubtask(String ownerId, long todoId, SubtaskRequest request) {
 		Todo todo = getTodo(ownerId, todoId);
-		Subtask subtask = new Subtask(todo, request.title().strip(), Boolean.TRUE.equals(request.completed()));
-		return SubtaskResponse.from(this.subtaskRepository.save(subtask));
+		Subtask subtask = new Subtask(todo, request.getTitle().strip(), Boolean.TRUE.equals(request.getCompleted()));
+		return TodoMapper.toResponse(this.subtaskRepository.save(subtask));
 	}
 
 	@Transactional
 	public SubtaskResponse updateSubtask(String ownerId, long todoId, long subtaskId, SubtaskRequest request) {
 		Subtask subtask = getSubtask(ownerId, todoId, subtaskId);
-		subtask.setTitle(request.title().strip());
-		if (request.completed() != null) {
-			subtask.setCompleted(request.completed());
+		subtask.setTitle(request.getTitle().strip());
+		if (request.getCompleted() != null) {
+			subtask.setCompleted(request.getCompleted());
 		}
-		return SubtaskResponse.from(subtask);
+		return TodoMapper.toResponse(subtask);
 	}
 
 	@Transactional
@@ -101,7 +109,7 @@ public class TodoService {
 
 	/** One page of all users' todos, for the admin overview. */
 	public Page<AdminTodoResponse> findAllOwners(Pageable pageable) {
-		return this.repository.findAll(TodoPaging.withStableSort(pageable)).map(AdminTodoResponse::from);
+		return this.repository.findAll(TodoPaging.withStableSort(pageable)).map(TodoMapper::toAdmin);
 	}
 
 	private Map<Long, SubtaskCounts> subtaskCounts(List<Todo> todos) {

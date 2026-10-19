@@ -1,0 +1,4 @@
+# Lint rules for openapi.yaml (`npx nx lint api-contract`): Redocly's recommended rules, with
+# warnings treated as errors, so a contract change with e.g. a missing operationId fails CI.
+extends:
+  - recommended-strict

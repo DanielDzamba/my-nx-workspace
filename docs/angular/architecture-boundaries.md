@@ -50,6 +50,10 @@ errors. Inside a module, import files relatively.
 Keep implementation details out of `index.ts`. Example: `todos/data/index.ts` exports the `Todo`
 model and `TodoStore`, but not `TodoClient`, so features cannot bypass the store.
 
+The generated API client (`data/api`) is such a detail: only the domain client (`TodoClient`) calls
+its functions, and `data/todo.ts` re-exports its models as the domain types (`Todo`, `TodoSummary`,
+...). Never hand-write API types in the frontend; change `api-contract/openapi.yaml` instead.
+
 ## Naming
 
 - Smart components (in `feature-*`) end with `Page`, `Search`, `Detail` or `Edit` and are the only
@@ -87,7 +91,8 @@ origin are provided by the shell via DI: `API_BASE_URL` (`domains/shared/util`) 
 - `feature-todo-detail/todo-detail-page.ts` — routed by `:id` (bound as an input), detail store.
 - `ui/todo-item`, `ui/todo-add-form`, `ui/todo-filter`, `ui/pager` — presentational, emit events,
   own only local UI state.
-- `data/todo-store.ts`, `data/todo-detail-store.ts` — Signal Stores; `data/todo-client.ts` — HTTP;
-  `data/todo.ts` — models.
+- `data/todo-store.ts`, `data/todo-detail-store.ts` — Signal Stores; `data/todo-client.ts` — HTTP
+  through the functions generated from the API contract (`data/api`, git-ignored, see
+  `api-contract/README.md`); `data/todo.ts` — the generated models under domain names.
 - `util/todo-query.ts` — the list query model and its constants, pure URL ↔ query helpers
   (in `util` because `ui` needs the constants at runtime, and `ui` may import `data` only as types).

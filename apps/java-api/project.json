@@ -4,6 +4,7 @@
   "projectType": "application",
   "sourceRoot": "apps/java-api/src/main/java",
   "tags": ["type:app", "lang:java"],
+  "implicitDependencies": ["api-contract"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
@@ -12,7 +13,8 @@
       "inputs": [
         "{projectRoot}/pom.xml",
         "{projectRoot}/src/main/**/*",
-        "{projectRoot}/.mvn/**/*"
+        "{projectRoot}/.mvn/**/*",
+        "{workspaceRoot}/api-contract/openapi.yaml"
       ],
       "outputs": ["{projectRoot}/target"],
       "options": {
@@ -35,7 +37,8 @@
       "inputs": [
         "{projectRoot}/pom.xml",
         "{projectRoot}/src/**/*",
-        "{projectRoot}/.mvn/**/*"
+        "{projectRoot}/.mvn/**/*",
+        "{workspaceRoot}/api-contract/openapi.yaml"
       ],
       "outputs": ["{projectRoot}/target/surefire-reports"],
       "options": {

@@ -29,7 +29,10 @@ services:
 
   api:
     profiles: [full]
-    build: .
+    # Repository root as context: the build needs api-contract/ (see Dockerfile)
+    build:
+      context: ../..
+      dockerfile: apps/java-api/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/java_api
       SPRING_DATASOURCE_USERNAME: java_api

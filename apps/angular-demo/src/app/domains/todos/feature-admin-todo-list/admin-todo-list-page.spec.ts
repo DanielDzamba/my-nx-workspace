@@ -12,7 +12,7 @@ import {
 } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ROUTE_PATHS, ROUTE_URLS } from '../../shared/util';
-import { AdminTodo, Page } from '../data';
+import { AdminTodo, AdminTodoPage } from '../data';
 import { AdminTodoListPage } from './admin-todo-list-page';
 
 const milk: AdminTodo = {
@@ -27,7 +27,7 @@ function page(
   content: AdminTodo[],
   totalElements = content.length,
   number = 0
-): Page<AdminTodo> {
+): AdminTodoPage {
   return {
     content,
     page: {

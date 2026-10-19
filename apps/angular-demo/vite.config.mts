@@ -26,7 +26,13 @@ export default defineConfig(() => ({
       // Always on, so a local `nx test` fails on the same thresholds as CI.
       enabled: true,
       include: ['src/**/*.ts'],
-      exclude: ['src/main.ts', 'src/test-setup.ts', 'src/**/*.spec.ts'],
+      exclude: [
+        'src/main.ts',
+        'src/test-setup.ts',
+        'src/**/*.spec.ts',
+        // Generated from api-contract/openapi.yaml
+        'src/app/domains/todos/data/api/**',
+      ],
       thresholds: {
         statements: 80,
         branches: 80,

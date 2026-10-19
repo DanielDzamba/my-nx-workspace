@@ -1,0 +1,500 @@
+openapi: 3.0.3
+info:
+  title: Todo API
+  version: 1.0.0
+  description: |
+    REST API of `java-api`, consumed by `angular-demo`.
+
+    This file is the **single source of truth** (design-first): the Spring interfaces and DTOs
+    of the backend and the Angular services and models of the frontend are generated from it on
+    every build. Change the API here first, then implement it. See `api-contract/README.md`.
+
+    Every request needs an Auth0 access token (`Authorization: Bearer <JWT>`). Errors with a body
+    are [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`).
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  # Relative: Swagger UI calls the origin it is served from; the frontend sets its own root URL
+  # (API_BASE_URL). The paths themselves contain `/api`.
+  - url: /
+    description: Same origin as this document
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: todos
+    description: Todos and subtasks of the signed-in user.
+  - name: admin
+    description: Overview of all users' todos; requires the `ADMIN` role.
+  - name: hello
+    description: Smoke-test endpoint.
+
+paths:
+  /api/todos:
+    get:
+      tags: [todos]
+      operationId: listTodos
+      summary: One page of the signed-in user's todos
+      description: Filtered by `status` and `q`, sorted and paged on the server.
+      x-spring-paginated: true
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, active, completed]
+            default: all
+        - name: q
+          in: query
+          description: Case-insensitive search in the title; `%` and `_` match literally.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Page'
+        - name: size
+          in: query
+          description: Page size; larger values are capped to 100.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 10
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: The page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoSummaryPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [todos]
+      operationId: createTodo
+      summary: Create a todo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoRequest'
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/todos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TodoId'
+    get:
+      tags: [todos]
+      operationId: getTodo
+      summary: One todo with its subtasks
+      responses:
+        '200':
+          description: The todo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [todos]
+      operationId: updateTodo
+      summary: Change a todo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoRequest'
+      responses:
+        '200':
+          description: The changed todo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [todos]
+      operationId: deleteTodo
+      summary: Delete a todo with its subtasks
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/todos/{id}/subtasks:
+    parameters:
+      - $ref: '#/components/parameters/TodoId'
+    post:
+      tags: [todos]
+      operationId: createSubtask
+      summary: Add a subtask to a todo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubtaskRequest'
+      responses:
+        '201':
+          description: Created.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubtaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/todos/{id}/subtasks/{subtaskId}:
+    parameters:
+      - $ref: '#/components/parameters/TodoId'
+      - name: subtaskId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      tags: [todos]
+      operationId: updateSubtask
+      summary: Change a subtask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubtaskRequest'
+      responses:
+        '200':
+          description: The changed subtask.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubtaskResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [todos]
+      operationId: deleteSubtask
+      summary: Delete a subtask
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/admin/todos:
+    get:
+      tags: [admin]
+      operationId: listAllTodos
+      summary: One page of all users' todos
+      x-spring-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - name: size
+          in: query
+          description: Page size; larger values are capped to 100.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: The page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTodoPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/hello:
+    get:
+      tags: [hello]
+      operationId: hello
+      summary: Greet someone
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+            default: world
+      responses:
+        '200':
+          description: The greeting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HelloResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Auth0 access token for the audience `https://todo-api`.
+
+  parameters:
+    TodoId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    Page:
+      name: page
+      in: query
+      description: Zero-based page index.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+    Sort:
+      name: sort
+      in: query
+      description: '`property,direction` with property `createdAt` or `title`, e.g. `title,asc`. Newest first by default.'
+      schema:
+        type: string
+        pattern: '^(createdAt|title)(,(asc|desc))?$'
+        default: createdAt,desc
+
+  headers:
+    Location:
+      description: URL of the created resource.
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Invalid parameter or body (e.g. blank title, unknown sort property).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Unauthorized:
+      description: Missing, expired or invalid access token.
+    Forbidden:
+      description: Valid token, but the required role is missing.
+    NotFound:
+      description: Does not exist, or belongs to another user (the API does not tell which).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+  schemas:
+    TodoRequest:
+      type: object
+      description: Body of create and update.
+      required: [title]
+      properties:
+        title:
+          $ref: '#/components/schemas/Title'
+        completed:
+          type: boolean
+          description: Missing means `false` on create and "keep the current value" on update.
+
+    SubtaskRequest:
+      type: object
+      description: Body of create and update of a subtask.
+      required: [title]
+      properties:
+        title:
+          $ref: '#/components/schemas/Title'
+        completed:
+          type: boolean
+          description: Missing means `false` on create and "keep the current value" on update.
+
+    Title:
+      type: string
+      description: Not blank; leading and trailing whitespace is removed.
+      minLength: 1
+      maxLength: 200
+      # At least one non-whitespace character; valid as a JavaScript and a Java (full match) regex
+      pattern: '^[\s\S]*\S[\s\S]*$'
+
+    TodoResponse:
+      type: object
+      required: [id, title, completed, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        completed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    TodoSummaryResponse:
+      description: A todo in the paged list, with how far its subtasks are.
+      allOf:
+        - $ref: '#/components/schemas/TodoResponse'
+        - type: object
+          required: [subtaskCount, completedSubtaskCount]
+          properties:
+            subtaskCount:
+              type: integer
+              format: int64
+            completedSubtaskCount:
+              type: integer
+              format: int64
+
+    TodoDetailResponse:
+      description: One todo with its subtasks, for the detail page.
+      allOf:
+        - $ref: '#/components/schemas/TodoResponse'
+        - type: object
+          required: [subtasks]
+          properties:
+            subtasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubtaskResponse'
+
+    AdminTodoResponse:
+      description: A todo in the admin overview, with its owner.
+      allOf:
+        - $ref: '#/components/schemas/TodoResponse'
+        - type: object
+          required: [ownerId]
+          properties:
+            ownerId:
+              type: string
+              description: Auth0 user ID of the owner; `legacy` for todos created before login existed.
+
+    SubtaskResponse:
+      type: object
+      required: [id, title, completed, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        completed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    PageMetadata:
+      type: object
+      required: [size, number, totalElements, totalPages]
+      properties:
+        size:
+          type: integer
+          format: int32
+        number:
+          type: integer
+          format: int32
+          description: Zero-based.
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+
+    TodoSummaryPage:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TodoSummaryResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+
+    AdminTodoPage:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminTodoResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+
+    HelloResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    ProblemDetail:
+      type: object
+      description: RFC 9457 error body.
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri

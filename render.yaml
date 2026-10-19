@@ -1,6 +1,6 @@
 # Render Blueprint (https://render.com/docs/blueprint-spec) for java-api.
 # The frontend is on GitHub Pages (.github/workflows/deploy-pages.yml), the database on Neon.
-# With rootDir set, dockerfilePath and dockerContext are resolved relative to it.
+# Paths are relative to the repository root.
 services:
   - type: web
     # Also the subdomain: https://danieldzamba-java-api.onrender.com (apiUrl in environment.ts)
@@ -9,9 +9,14 @@ services:
     plan: free
     # Same region as the Neon database (AWS eu-central-1)
     region: frankfurt
-    rootDir: apps/java-api
-    dockerfilePath: ./Dockerfile
+    # Repository root as build context: the build also needs the API contract (api-contract/)
+    dockerfilePath: ./apps/java-api/Dockerfile
     dockerContext: .
+    # Deploy only when the API or its contract changed (rootDir would hide api-contract/)
+    buildFilter:
+      paths:
+        - apps/java-api/**
+        - api-contract/**
     # Readiness does not include the database, so a sleeping Neon compute does not fail the deploy
     healthCheckPath: /actuator/health/readiness
     # Deploy a commit on main only after CI has passed on it
@@ -27,6 +32,9 @@ services:
         sync: false
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://danieldzamba.github.io
+      # Swagger UI is for development; the contract itself stays readable at /openapi.yaml
+      - key: SPRINGDOC_SWAGGER_UI_ENABLED
+        value: 'false'
       # Free plan has 512 MB RAM and a fraction of a CPU: leave room for metaspace and threads,
       # use the single-threaded GC and trade peak performance for a faster startup
       - key: JAVA_TOOL_OPTIONS
