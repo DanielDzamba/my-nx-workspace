@@ -6,7 +6,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { API_BASE_URL } from '../../shared/util';
-import { AdminTodo, Page } from './todo';
+import { AdminTodo, AdminTodoPage } from './todo';
 import { AdminTodoStore } from './admin-todo-store';
 
 const milk: AdminTodo = {
@@ -17,7 +17,7 @@ const milk: AdminTodo = {
   ownerId: 'auth0|alice',
 };
 
-function page(content: AdminTodo[], totalElements: number): Page<AdminTodo> {
+function page(content: AdminTodo[], totalElements: number): AdminTodoPage {
   return {
     content,
     page: {

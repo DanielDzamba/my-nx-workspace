@@ -7,7 +7,8 @@ How the todo API talks to PostgreSQL, and the performance traps it avoids. Code:
 
 `GET /api/todos` never returns the whole table. Spring binds `?page=&size=&sort=` into a
 `Pageable`; the repository turns it into `ORDER BY ... LIMIT 10 OFFSET 20` plus a `count(*)` for
-`totalElements`, and the controller returns a `PagedModel`:
+`totalElements`, and the controller returns the `TodoSummaryPage` DTO generated from the API contract
+(same JSON shape as Spring Data's `PagedModel`):
 
 ```json
 { "content": [ ... ], "page": { "size": 10, "number": 2, "totalElements": 57, "totalPages": 6 } }

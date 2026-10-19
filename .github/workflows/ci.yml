@@ -50,6 +50,29 @@ jobs:
       # Sets NX_BASE / NX_HEAD so `nx affected` only runs projects the PR touches
       - uses: nrwl/nx-set-shas@v4
 
+      # A contract change must not break existing clients (removed endpoint or field, new required
+      # parameter, changed type, ...). Compares api-contract/openapi.yaml with the PR's base branch;
+      # skipped while the base branch has no contract yet.
+      - name: Get API contract of the base branch
+        id: base-contract
+        if: github.event_name == 'pull_request'
+        run: |
+          # tmp/ is git-ignored, so the copy does not end up in format:check or the Nx project graph
+          mkdir -p tmp
+          if git show "origin/${{ github.base_ref }}:api-contract/openapi.yaml" > tmp/base-openapi.yaml 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check API contract for breaking changes
+        if: steps.base-contract.outputs.exists == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0.1.18
+        with:
+          base: tmp/base-openapi.yaml
+          revision: api-contract/openapi.yaml
+          fail-on: ERR
+          # Keep the specs in CI: no upload to oasdiff.com, no PR comment
+          review: 'false'
+          github-token: ''
+
       - run: npx nx format:check
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud

@@ -47,3 +47,5 @@ Thumbs.db
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+# Generated from api-contract/openapi.yaml on every build (nx generate-api angular-demo)
+apps/angular-demo/src/app/domains/todos/data/api

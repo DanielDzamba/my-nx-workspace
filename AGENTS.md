@@ -7,9 +7,21 @@ Nx monorepo with two apps:
 | `angular-demo` | `apps/angular-demo` | Angular 20 (standalone, signals, NgRx Signal Store), Vitest |
 | `java-api`     | `apps/java-api`     | Spring Boot 4 / Java 21, PostgreSQL                         |
 | `mylib`        | `mylib`             | Angular UI library, imported as `@mylib`                    |
+| `api-contract` | `api-contract`      | OpenAPI 3.0 contract of the REST API (design-first)         |
 
 Run tasks through Nx: `npx nx <target> <project>` (`lint`, `test`, `build`, `serve`).
 Skills in `.claude/skills` cover running the stack (`runapp`, `run-java-api`) and PRs (`pr`).
+
+## API contract: red lines
+
+Details and the step-by-step workflow: `api-contract/README.md`.
+
+- Every API change starts in `api-contract/openapi.yaml`; then implement the generated interface
+  (Java) and call the generated function (Angular). Never the other way round.
+- Never hand-write API DTOs (Java records, TypeScript interfaces) or edit generated code
+  (`apps/java-api/target/generated-sources`, `apps/angular-demo/src/app/domains/todos/data/api`).
+- Keep changes additive; a breaking change (removed/renamed field, new required parameter, changed
+  type) fails CI (oasdiff) and needs the user's decision.
 
 ## Angular: red lines
 

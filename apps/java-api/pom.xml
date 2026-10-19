@@ -15,6 +15,10 @@
 	<description>Spring Boot API for my-nx-workspace</description>
 	<properties>
 		<java.version>21</java.version>
+		<!-- The API contract (design-first): interfaces and DTOs are generated from it on every build -->
+		<api-contract.dir>${project.basedir}/../../api-contract</api-contract.dir>
+		<openapi-generator.version>7.26.0</openapi-generator.version>
+		<springdoc.version>3.1.1</springdoc.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -41,6 +45,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<!-- Swagger UI only (/swagger-ui.html): shows the contract from api-contract, does not scan the code -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
@@ -103,10 +113,77 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<!-- Served as /openapi.yaml for Swagger UI -->
+			<resource>
+				<directory>${api-contract.dir}</directory>
+				<includes>
+					<include>openapi.yaml</include>
+				</includes>
+				<targetPath>static</targetPath>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!--
+				Runs in the generate-sources phase, i.e. before every compile (mvn compile/test/package).
+				Output goes to target/generated-sources/openapi (never committed): one interface per tag
+				(TodosApi, AdminApi, HelloApi) that the controllers implement, plus the request and
+				response DTOs. A new operation in the contract is a compile error until a controller
+				implements it.
+			-->
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>${openapi-generator.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${api-contract.dir}/openapi.yaml</inputSpec>
+							<generatorName>spring</generatorName>
+							<apiPackage>com.example.javaapi.api</apiPackage>
+							<modelPackage>com.example.javaapi.api.model</modelPackage>
+							<!-- Interfaces and models only: no pom.xml, README, ApiUtil, tests or docs -->
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<generateApiTests>false</generateApiTests>
+							<generateApiDocumentation>false</generateApiDocumentation>
+							<generateModelTests>false</generateModelTests>
+							<generateModelDocumentation>false</generateModelDocumentation>
+							<typeMappings>
+								<typeMapping>OffsetDateTime=java.time.Instant</typeMapping>
+							</typeMappings>
+							<!-- Error bodies are Spring's own RFC 9457 type, not a generated copy -->
+							<schemaMappings>
+								<schemaMapping>ProblemDetail=org.springframework.http.ProblemDetail</schemaMapping>
+							</schemaMappings>
+							<configOptions>
+								<interfaceOnly>true</interfaceOnly>
+								<skipDefaultInterface>true</skipDefaultInterface>
+								<useTags>true</useTags>
+								<useSpringBoot4>true</useSpringBoot4>
+								<useJackson3>true</useJackson3>
+								<useBeanValidation>true</useBeanValidation>
+								<!-- Spring MVC validates the annotated parameters itself; no @Validated proxy -->
+								<useSpringBuiltInValidation>true</useSpringBuiltInValidation>
+								<openApiNullable>false</openApiNullable>
+								<generateJsonSetterNullsAnnotations>false</generateJsonSetterNullsAnnotations>
+								<!-- Swagger UI shows the contract itself, so no documentation annotations -->
+								<annotationLibrary>none</annotationLibrary>
+								<documentationProvider>none</documentationProvider>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

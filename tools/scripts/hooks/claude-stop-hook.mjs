@@ -12,6 +12,8 @@ import { runChecks } from '../ci-checks.mjs';
 const MAX_ATTEMPTS = 3;
 const WATCHED_PATHS = [
   'apps/angular-demo',
+  // The frontend's API client is generated from it
+  'api-contract',
   'mylib',
   'sheriff.config.ts',
   'package.json',

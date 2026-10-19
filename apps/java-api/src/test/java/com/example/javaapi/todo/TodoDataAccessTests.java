@@ -21,6 +21,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.example.javaapi.TestcontainersConfiguration;
+import com.example.javaapi.api.model.SubtaskResponse;
+import com.example.javaapi.api.model.TodoDetailResponse;
 
 /**
  * How the todo queries hit the database: number of SQL statements (N+1), lazy loading without
@@ -71,7 +73,7 @@ class TodoDataAccessTests {
 
 		var page = this.service.findPage(ALICE, TodoStatus.ALL, null, PageRequest.of(0, 10));
 
-		assertThat(page.getContent()).hasSize(10).allSatisfy((todo) -> assertThat(todo.subtaskCount()).isEqualTo(2));
+		assertThat(page.getContent()).hasSize(10).allSatisfy((todo) -> assertThat(todo.getSubtaskCount()).isEqualTo(2));
 		// Page + count + subtask counts. Reading todo.getSubtasks().size() per todo instead would be
 		// 1 + 1 + 10 statements here: the N+1 problem, growing with the page size.
 		assertThat(this.statistics.getPrepareStatementCount()).isEqualTo(3);
@@ -85,7 +87,7 @@ class TodoDataAccessTests {
 
 		TodoDetailResponse detail = this.service.findById(ALICE, id);
 
-		assertThat(detail.subtasks()).extracting(SubtaskResponse::title).containsExactly("Step 1", "Step 2");
+		assertThat(detail.getSubtasks()).extracting(SubtaskResponse::getTitle).containsExactly("Step 1", "Step 2");
 		// @EntityGraph turns the lazy collection into a LEFT JOIN FETCH
 		assertThat(this.statistics.getPrepareStatementCount()).isEqualTo(1);
 	}

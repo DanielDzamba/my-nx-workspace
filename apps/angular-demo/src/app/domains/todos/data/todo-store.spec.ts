@@ -13,7 +13,7 @@ import {
   TODO_STATUSES,
   TodoQuery,
 } from '../util';
-import { Page, TodoSummary } from './todo';
+import { TodoPage, TodoSummary } from './todo';
 import { TodoStore } from './todo-store';
 
 const milk: TodoSummary = {
@@ -34,7 +34,7 @@ const bread: TodoSummary = {
 function page(
   content: TodoSummary[],
   totalElements = content.length
-): Page<TodoSummary> {
+): TodoPage {
   return {
     content,
     page: {

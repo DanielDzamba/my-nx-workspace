@@ -4,6 +4,8 @@ import sheriff from '@softarc/eslint-plugin-sheriff';
 import baseConfig from '../../eslint.config.mjs';
 
 export default [
+  // Generated from api-contract/openapi.yaml (nx generate-api angular-demo); not hand-written code
+  { ignores: ['src/app/domains/todos/data/api/**'] },
   playwright.configs['flat/recommended'],
   ...baseConfig,
   ...nx.configs['flat/angular'],

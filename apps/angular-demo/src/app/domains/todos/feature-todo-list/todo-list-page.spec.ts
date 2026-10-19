@@ -12,7 +12,7 @@ import {
 } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ROUTE_PATHS, ROUTE_URLS } from '../../shared/util';
-import { Page, TodoSummary } from '../data';
+import { TodoPage, TodoSummary } from '../data';
 import { TODO_STATUSES } from '../util';
 import { TodoListPage } from './todo-list-page';
 
@@ -29,7 +29,7 @@ function page(
   content: TodoSummary[],
   totalElements = content.length,
   number = 0
-): Page<TodoSummary> {
+): TodoPage {
   return {
     content,
     page: {
@@ -87,7 +87,7 @@ describe('TodoListPage', () => {
     await harness.fixture.whenStable();
   }
 
-  async function open(url: string, content: Page<TodoSummary>) {
+  async function open(url: string, content: TodoPage) {
     await harness.navigateByUrl(url, TodoListPage);
     expectPageRequest().flush(content);
     await settle();
@@ -111,7 +111,7 @@ describe('TodoListPage', () => {
    * Answers the reload that follows every successful mutation. No whenStable() before it: a
    * running resource request is a pending task, so the app is not stable until it is answered.
    */
-  async function flushReload(content: Page<TodoSummary>) {
+  async function flushReload(content: TodoPage) {
     await new Promise((resolve) => setTimeout(resolve));
     harness.detectChanges();
     expectPageRequest().flush(content);

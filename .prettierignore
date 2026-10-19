@@ -7,3 +7,6 @@
 
 # Vendored from github.com/angular/skills; keep identical to upstream
 /.claude/skills/angular-developer
+
+# Generated from api-contract/openapi.yaml (nx generate-api angular-demo)
+/apps/angular-demo/src/app/domains/todos/data/api

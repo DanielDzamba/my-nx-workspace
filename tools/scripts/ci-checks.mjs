@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Deterministic frontend checks shared by the Claude Code Stop hook and humans.
 //
-//   node tools/scripts/ci-checks.mjs          fast: format, lint (incl. Sheriff boundaries), typecheck,
-//                                             unit tests with coverage thresholds
+//   node tools/scripts/ci-checks.mjs          fast: format, lint (incl. Sheriff boundaries, API contract),
+//                                             typecheck, unit tests with coverage thresholds
 //   node tools/scripts/ci-checks.mjs --full   fast + production build + Playwright e2e (Chromium)
 //
 // Keep in sync with .github/workflows/ci.yml.
@@ -12,7 +12,8 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const PROJECTS = 'angular-demo,mylib';
+// api-contract: its lint validates the OpenAPI contract the frontend client is generated from
+const PROJECTS = 'angular-demo,mylib,api-contract';
 const MAX_MESSAGE_CHARS = 8000;
 const ANSI_ESCAPE = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g');
 
