@@ -91,14 +91,20 @@ describe('AdminTodoListPage', () => {
       req.flush(
         page([
           milk,
-          { ...milk, id: 2, title: 'Old', completed: true, ownerId: 'legacy' },
+          {
+            ...milk,
+            id: 2,
+            title: 'Old',
+            completed: true,
+            ownerId: 'auth0|bob',
+          },
         ])
       )
     );
 
     expect(rows().map(([title, owner, done]) => [title, owner, done])).toEqual([
       ['Buy milk', 'auth0|alice', 'nie'],
-      ['Old', 'legacy', 'áno'],
+      ['Old', 'auth0|bob', 'áno'],
     ]);
     expect(element().textContent).toContain('Spolu: 2 úloh');
   });
