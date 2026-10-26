@@ -5,7 +5,7 @@ Nx monorepo with two apps:
 | Project        | Path                | Stack                                                       |
 | -------------- | ------------------- | ----------------------------------------------------------- |
 | `angular-demo` | `apps/angular-demo` | Angular 20 (standalone, signals, NgRx Signal Store), Vitest |
-| `java-api`     | `apps/java-api`     | Spring Boot 4 / Java 21, PostgreSQL, RabbitMQ               |
+| `java-api`     | `apps/java-api`     | Spring Boot 4 / Java 21, PostgreSQL, RabbitMQ, Redis        |
 | `mylib`        | `mylib`             | Angular UI library, imported as `@mylib`                    |
 | `api-contract` | `api-contract`      | OpenAPI 3.0 contract of the REST API (design-first)         |
 

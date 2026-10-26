@@ -10,7 +10,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { MutationResult } from '@angular-architects/ngrx-toolkit';
 import { ROUTE_URLS } from '../../shared/util';
 import { Todo, TodoStore } from '../data';
-import { Pager, TodoAddForm, TodoFilter, TodoItem } from '../ui';
+import { Pager } from '../../shared/ui';
+import { TodoAddForm, TodoFilter, TodoItem } from '../ui';
 import {
   TODO_STATUSES,
   TodoQuery,

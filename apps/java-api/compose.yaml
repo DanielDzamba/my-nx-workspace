@@ -2,7 +2,7 @@
 #
 # `npx nx serve java-api` starts the postgres service automatically (spring-boot-docker-compose),
 # so you rarely need to run this by hand. Useful commands, from apps/java-api:
-#   docker compose up -d --wait          # start PostgreSQL and RabbitMQ
+#   docker compose up -d --wait          # start PostgreSQL, RabbitMQ and Redis
 #   docker compose --profile full up --build   # PostgreSQL + the API as a container
 #   docker compose down                  # stop (data is kept in the volume)
 #   docker compose down -v               # stop and wipe the database
@@ -46,6 +46,18 @@ services:
       timeout: 5s
       retries: 20
 
+  # Cache (users). Look inside: docker compose exec redis redis-cli KEYS 'java-api:*'
+  # No volume: a cache may be lost at any time, it fills up again from the database.
+  redis:
+    image: redis:8-alpine
+    ports:
+      - '127.0.0.1:6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     profiles: [full]
     # Repository root as context: the build needs api-contract/ (see Dockerfile)
@@ -57,12 +69,15 @@ services:
       SPRING_DATASOURCE_USERNAME: java_api
       SPRING_DATASOURCE_PASSWORD: java_api
       SPRING_RABBITMQ_ADDRESSES: amqp://java_api:java_api@rabbitmq:5672
+      SPRING_DATA_REDIS_URL: redis://redis:6379
     ports:
       - '127.0.0.1:8080:8080'
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

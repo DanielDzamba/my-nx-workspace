@@ -20,7 +20,15 @@
       @for (todo of store.todos(); track todo.id) {
       <tr>
         <td>{{ todo.title }}</td>
-        <td><code>{{ todo.ownerId }}</code></td>
+        <td>
+          @if (todo.ownerName) {
+          <span [title]="todo.ownerEmail ?? todo.ownerId"
+            >{{ todo.ownerName }}</span
+          >
+          } @else {
+          <code>{{ todo.ownerId }}</code>
+          }
+        </td>
         <td>{{ todo.completed ? 'áno' : 'nie' }}</td>
         <td>{{ todo.createdAt | date: 'd.M.yyyy HH:mm' }}</td>
       </tr>

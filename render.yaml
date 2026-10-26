@@ -1,5 +1,6 @@
 # Render Blueprint (https://render.com/docs/blueprint-spec) for java-api.
-# The frontend is on GitHub Pages (.github/workflows/deploy-pages.yml), the database on Neon.
+# The frontend is on GitHub Pages (.github/workflows/deploy-pages.yml), the database on Neon,
+# RabbitMQ on CloudAMQP; the Redis cache is the Key Value service below.
 # Paths are relative to the repository root.
 services:
   - type: web
@@ -34,6 +35,12 @@ services:
       # amqps://<user>:<password>@<host>/<vhost> - amqps turns on TLS
       - key: SPRING_RABBITMQ_ADDRESSES
         sync: false
+      # Internal URL of the Key Value service below (redis://red-...:6379), filled in by Render
+      - key: SPRING_DATA_REDIS_URL
+        fromService:
+          type: keyvalue
+          name: danieldzamba-java-api-cache
+          property: connectionString
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://danieldzamba.github.io
       # Swagger UI is for development; the contract itself stays readable at /openapi.yaml
@@ -43,3 +50,14 @@ services:
       # use the single-threaded GC and trade peak performance for a faster startup
       - key: JAVA_TOOL_OPTIONS
         value: -XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+
+  # Redis-compatible cache (users, see docs/java-api/caching.md). Free plan: 25 MB, no persistence,
+  # which is fine for a cache: it fills up again from the database after a restart.
+  - type: keyvalue
+    name: danieldzamba-java-api-cache
+    plan: free
+    region: frankfurt
+    # No access from the internet: only services in this Render account reach it
+    ipAllowList: []
+    # When memory is full, drop the least recently used keys instead of rejecting writes
+    maxmemoryPolicy: allkeys-lru

@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.javaapi.config.SecurityConfig;
+import com.example.javaapi.user.UserService;
 
 @WebMvcTest(HelloController.class)
 @Import(SecurityConfig.class)
@@ -21,6 +23,10 @@ class HelloControllerTests {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	/** Needed by the user filter in SecurityConfig; a mock finds no user and provisions nothing. */
+	@MockitoBean
+	private UserService users;
 
 	@Test
 	void returnsDefaultGreeting() throws Exception {

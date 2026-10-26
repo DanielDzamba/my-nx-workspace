@@ -23,6 +23,8 @@ import com.example.javaapi.api.model.TodoResponse;
 import com.example.javaapi.api.model.TodoSummaryResponse;
 import com.example.javaapi.messaging.TodoCompletedEvent;
 import com.example.javaapi.outbox.Outbox;
+import com.example.javaapi.user.UserProfile;
+import com.example.javaapi.user.UserService;
 
 /**
  * Every method works on the todos of one owner (the signed-in user). A todo of another user
@@ -42,10 +44,13 @@ public class TodoService {
 
 	private final Outbox outbox;
 
-	TodoService(TodoRepository repository, SubtaskRepository subtaskRepository, Outbox outbox) {
+	private final UserService users;
+
+	TodoService(TodoRepository repository, SubtaskRepository subtaskRepository, Outbox outbox, UserService users) {
 		this.repository = repository;
 		this.subtaskRepository = subtaskRepository;
 		this.outbox = outbox;
+		this.users = users;
 	}
 
 	/**
@@ -124,9 +129,15 @@ public class TodoService {
 		this.subtaskRepository.delete(getSubtask(ownerId, todoId, subtaskId));
 	}
 
-	/** One page of all users' todos, for the admin overview. */
+	/**
+	 * One page of all users' todos with their owners, for the admin overview. Two queries however
+	 * large the page is: the page, and the owners of the todos on it.
+	 */
 	public Page<AdminTodoResponse> findAllOwners(Pageable pageable) {
-		return this.repository.findAll(TodoPaging.withStableSort(pageable)).map(TodoMapper::toAdmin);
+		Page<Todo> page = this.repository.findAll(TodoPaging.withStableSort(pageable));
+		Map<String, UserProfile> owners = this.users
+			.findProfiles(page.getContent().stream().map(Todo::getOwnerId).distinct().toList());
+		return page.map((todo) -> TodoMapper.toAdmin(todo, owners.get(todo.getOwnerId())));
 	}
 
 	private Map<Long, SubtaskCounts> subtaskCounts(List<Todo> todos) {

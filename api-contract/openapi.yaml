@@ -11,6 +11,10 @@ info:
 
     Every request needs an Auth0 access token (`Authorization: Bearer <JWT>`). Errors with a body
     are [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`).
+
+    The first request of a user creates them in the user list (name and email from the token).
+    A user blocked by an admin gets `403` with the problem type
+    `https://todo-api/problems/user-blocked` on every endpoint.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -28,6 +32,8 @@ tags:
     description: Todos and subtasks of the signed-in user.
   - name: admin
     description: Overview of all users' todos; requires the `ADMIN` role.
+  - name: users
+    description: The users who have signed in, and blocking them; requires the `ADMIN` role.
   - name: notifications
     description: |
       In-app notifications of the signed-in user. They are created asynchronously: completing a
@@ -78,6 +84,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags: [todos]
       operationId: createTodo
@@ -102,6 +110,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/todos/{id}:
     parameters:
@@ -119,6 +129,8 @@ paths:
                 $ref: '#/components/schemas/TodoDetailResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
     put:
@@ -142,6 +154,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -153,6 +167,8 @@ paths:
           description: Deleted.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -183,6 +199,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -216,6 +234,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -227,6 +247,8 @@ paths:
           description: Deleted.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -262,6 +284,81 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/admin/users:
+    get:
+      tags: [users]
+      operationId: listUsers
+      summary: One page of all users
+      description: Newest first.
+      x-spring-paginated: true
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - name: size
+          in: query
+          description: Page size; larger values are capped to 100.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: The page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/users/{userId}/blocked:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        description: Auth0 user ID, URL-encoded (`auth0|64f1` → `auth0%7C64f1`).
+        schema:
+          type: string
+    put:
+      tags: [users]
+      operationId: setUserBlocked
+      summary: Block or unblock a user
+      description: |
+        Idempotent: blocking a blocked user changes nothing. Takes effect on the user's next
+        request. An admin cannot block themselves.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBlockedRequest'
+      responses:
+        '200':
+          description: The changed user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The admin tried to block themselves.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
   /api/notifications:
     get:
       tags: [notifications]
@@ -277,6 +374,8 @@ paths:
                 $ref: '#/components/schemas/NotificationList'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/notifications/read-all:
     post:
@@ -288,6 +387,8 @@ paths:
           description: Marked as read.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/hello:
     get:
@@ -309,6 +410,8 @@ paths:
                 $ref: '#/components/schemas/HelloResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
 components:
   securitySchemes:
@@ -360,7 +463,13 @@ components:
     Unauthorized:
       description: Missing, expired or invalid access token.
     Forbidden:
-      description: Valid token, but the required role is missing.
+      description: |
+        Valid token, but the required role is missing (no body), or the user is blocked (body with
+        type `https://todo-api/problems/user-blocked`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
     NotFound:
       description: Does not exist, or belongs to another user (the API does not tell which).
       content:
@@ -450,6 +559,12 @@ components:
             ownerId:
               type: string
               description: Auth0 user ID of the owner.
+            ownerName:
+              type: string
+              description: Name of the owner; missing while unknown.
+            ownerEmail:
+              type: string
+              description: Email of the owner; missing while unknown.
 
     SubtaskResponse:
       type: object
@@ -505,6 +620,44 @@ components:
             $ref: '#/components/schemas/AdminTodoResponse'
         page:
           $ref: '#/components/schemas/PageMetadata'
+
+    UserResponse:
+      type: object
+      required: [id, blocked, createdAt]
+      properties:
+        id:
+          type: string
+          description: Auth0 user ID (`sub` claim).
+        name:
+          type: string
+          description: From the access token; missing while unknown.
+        email:
+          type: string
+          description: From the access token; missing while unknown.
+        blocked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: First request of the user.
+
+    UserPage:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+
+    UserBlockedRequest:
+      type: object
+      required: [blocked]
+      properties:
+        blocked:
+          type: boolean
 
     NotificationResponse:
       type: object

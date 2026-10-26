@@ -9,6 +9,9 @@ export const ROUTE_PATHS = {
   /** `:id` is bound to the `id` input of the routed component (`withComponentInputBinding`). */
   todoDetail: 'todos/:id',
   adminTodos: 'admin/todos',
+  adminUsers: 'admin/users',
+  /** Shown when the API answers that the signed-in user is blocked. */
+  accountBlocked: 'account-blocked',
 } as const;
 
 export const ROUTE_URLS = {
@@ -16,4 +19,6 @@ export const ROUTE_URLS = {
   todos: `/${ROUTE_PATHS.todos}`,
   todoDetail: (id: number) => `/${ROUTE_PATHS.todos}/${id}`,
   adminTodos: `/${ROUTE_PATHS.adminTodos}`,
+  adminUsers: `/${ROUTE_PATHS.adminUsers}`,
+  accountBlocked: `/${ROUTE_PATHS.accountBlocked}`,
 } as const;

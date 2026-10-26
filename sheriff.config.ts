@@ -33,6 +33,7 @@ export const config: SheriffConfig = {
     // ui may import models from data, but only as `import type` (see eslint.config.mjs).
     'type:ui': ['type:data', 'type:util'],
     'type:data': ['type:util'],
-    'type:util': [],
+    // util may use shared/util (other domains' util stay blocked by the domain rule above).
+    'type:util': ['type:util'],
   },
 };

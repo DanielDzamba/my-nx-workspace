@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.example.javaapi.TestUsers;
 import com.example.javaapi.TestcontainersConfiguration;
 import com.example.javaapi.api.model.SubtaskResponse;
 import com.example.javaapi.api.model.TodoDetailResponse;
@@ -55,6 +56,7 @@ class TodoDataAccessTests {
 	@BeforeEach
 	void setUp(@Autowired EntityManagerFactory entityManagerFactory) {
 		this.repository.deleteAll();
+		TestUsers.create(this.jdbc, ALICE);
 		this.statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
 	}
 

@@ -1,3 +1,5 @@
+import { pageParam, parsePageParam } from '../../shared/util';
+
 /**
  * What the todo list shows: filter, sort and page. It lives in the URL
  * (`/todos?status=active&q=milk&sort=title&page=2`), so a reload, the back button or a shared
@@ -48,20 +50,6 @@ function isOneOf<T extends string>(
   value: string | undefined
 ): value is T {
   return Object.values<string>(values).includes(value ?? '');
-}
-
-/**
- * One-based `?page=` → zero-based page index. Anything that is not a positive whole number
- * (hand-edited URL) means the first page.
- */
-export function parsePageParam(page: string | undefined): number {
-  const parsed = Number(page);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed - 1 : 0;
-}
-
-/** Zero-based page index → `?page=` value; the first page is left out of the URL. */
-export function pageParam(page: number): string | null {
-  return page > 0 ? String(page + 1) : null;
 }
 
 /** URL query params → query. Unknown or missing values fall back to the defaults. */

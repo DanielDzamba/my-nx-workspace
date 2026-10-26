@@ -2,8 +2,6 @@ import {
   DEFAULT_TODO_QUERY,
   TODO_SORTS,
   TODO_STATUSES,
-  pageParam,
-  parsePageParam,
   parseTodoQuery,
   todoQueryParams,
 } from './todo-query';
@@ -34,8 +32,6 @@ describe('todo query', () => {
     expect(
       parseTodoQuery({ status: 'later', sort: 'random', page: '-1' })
     ).toEqual(DEFAULT_TODO_QUERY);
-    expect(parsePageParam('1.5')).toBe(0);
-    expect(parsePageParam('abc')).toBe(0);
   });
 
   test('leaves default values out of the URL', () => {
@@ -77,6 +73,5 @@ describe('todo query', () => {
         page: params.page ?? undefined,
       })
     ).toEqual(query);
-    expect(pageParam(0)).toBeNull();
   });
 });

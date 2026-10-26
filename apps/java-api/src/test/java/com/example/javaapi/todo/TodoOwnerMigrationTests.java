@@ -71,6 +71,21 @@ class TodoOwnerMigrationTests {
 		assertThat(this.jdbc.queryForObject("SELECT count(*) FROM " + SCHEMA + ".subtask", Long.class)).isZero();
 	}
 
+	@Test
+	void turnsTodoOwnersIntoUsers() {
+		flyway("6").migrate();
+		insertTodo("One", "auth0|alice");
+		insertTodo("Two", "auth0|alice");
+
+		flyway("latest").migrate();
+
+		assertThat(this.jdbc.queryForList("SELECT id FROM " + SCHEMA + ".users", String.class))
+			.containsExactly("auth0|alice");
+		// From now on the owner must exist
+		assertThatThrownBy(() -> insertTodo("Orphan", "auth0|nobody"))
+			.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
 	private long insertTodo(String title, String ownerId) {
 		return this.jdbc.queryForObject(
 				"INSERT INTO " + SCHEMA + ".todo (title, owner_id) VALUES (?, ?) RETURNING id", Long.class, title,

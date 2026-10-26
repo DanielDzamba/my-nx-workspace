@@ -109,6 +109,19 @@ describe('AdminTodoListPage', () => {
     expect(element().textContent).toContain('Spolu: 2 úloh');
   });
 
+  it('shows the owner name instead of the ID once it is known', async () => {
+    await open((req) =>
+      req.flush(
+        page([{ ...milk, ownerName: 'Alice', ownerEmail: 'alice@example.com' }])
+      )
+    );
+
+    expect(rows()[0][1]).toBe('Alice');
+    expect(element().querySelector('tbody span')?.getAttribute('title')).toBe(
+      'alice@example.com'
+    );
+  });
+
   it('takes the page from the URL and pages through it', async () => {
     await open((req) => {
       expect(req.request.params.get('page')).toBe('1');

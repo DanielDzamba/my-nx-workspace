@@ -7,10 +7,10 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ROUTE_URLS } from '../../shared/util';
+
 import { AdminTodoStore } from '../data';
-import { Pager } from '../ui';
-import { pageParam, parsePageParam } from '../util';
+import { Pager } from '../../shared/ui';
+import { ROUTE_URLS, pageParam, parsePageParam } from '../../shared/util';
 
 /** Read-only overview of all users' todos; the route is guarded by `roleGuard(ROLES.admin)`. */
 @Component({

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -25,6 +26,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.example.javaapi.TestUsers;
 import com.example.javaapi.TestcontainersConfiguration;
 
 /**
@@ -45,6 +47,9 @@ class TodoControllerTests {
 	@Autowired
 	private TodoRepository repository;
 
+	@Autowired
+	private JdbcTemplate jdbc;
+
 	@BeforeEach
 	void setUp(WebApplicationContext context) {
 		// Unless a test says otherwise, requests come from Alice with a mocked, already validated
@@ -54,6 +59,7 @@ class TodoControllerTests {
 			.defaultRequest(get("/").with(as(ALICE)))
 			.build();
 		this.repository.deleteAll();
+		TestUsers.create(this.jdbc, ALICE, BOB);
 	}
 
 	/** A token whose {@code sub} claim is {@code subject}. */

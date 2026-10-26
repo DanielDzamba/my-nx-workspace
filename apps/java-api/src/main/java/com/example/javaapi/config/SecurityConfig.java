@@ -1,5 +1,6 @@
 package com.example.javaapi.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -9,7 +10,12 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.servlet.HandlerExceptionResolver;
+
+import com.example.javaapi.user.UserProvisioningFilter;
+import com.example.javaapi.user.UserService;
 
 /**
  * The API is an OAuth2 resource server: every /api request needs a valid Auth0 access token
@@ -30,7 +36,8 @@ public class SecurityConfig {
 	public static final String ROLES_CLAIM = "https://todo-api/roles";
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(HttpSecurity http, UserService users,
+			@Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) throws Exception {
 		return http
 			.authorizeHttpRequests((requests) -> requests
 				// Render health check and liveness/readiness probes call these without a token
@@ -47,6 +54,9 @@ public class SecurityConfig {
 			.cors(Customizer.withDefaults())
 			.oauth2ResourceServer((resourceServer) -> resourceServer
 				.jwt((jwt) -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+			// Right after the token is validated: create the user on their first request, reject a
+			// blocked one with 403. Before authorization, so a blocked admin is stopped as well.
+			.addFilterAfter(new UserProvisioningFilter(users, exceptionResolver), BearerTokenAuthenticationFilter.class)
 			// No session and no cookies: the token is sent on every request, so CSRF does not apply
 			.sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.csrf(AbstractHttpConfigurer::disable)

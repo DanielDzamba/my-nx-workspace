@@ -12,6 +12,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { environment } from '../environments/environment';
 import { appRoutes } from './app.routes';
 import { authInterceptors, authProviders } from './auth.providers';
+import { blockedUserInterceptor } from './domains/shared/data';
 import { API_BASE_URL } from './domains/shared/util';
 
 export const appConfig: ApplicationConfig = {
@@ -20,7 +21,10 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     // Route params (`:id`) and query params (`?page=`) are set as inputs of the routed component
     provideRouter(appRoutes, withComponentInputBinding()),
-    provideHttpClient(withFetch(), withInterceptors(authInterceptors)),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([...authInterceptors, blockedUserInterceptor])
+    ),
     { provide: API_BASE_URL, useValue: environment.apiUrl },
     ...authProviders,
   ],

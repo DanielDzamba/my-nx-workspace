@@ -8,6 +8,7 @@ import com.example.javaapi.api.model.SubtaskResponse;
 import com.example.javaapi.api.model.TodoDetailResponse;
 import com.example.javaapi.api.model.TodoResponse;
 import com.example.javaapi.api.model.TodoSummaryResponse;
+import com.example.javaapi.user.UserProfile;
 
 /**
  * Entities to the response DTOs generated from {@code api-contract/openapi.yaml}. The entities never
@@ -33,9 +34,11 @@ final class TodoMapper {
 				todo.getSubtasks().stream().map(TodoMapper::toResponse).toList());
 	}
 
-	static AdminTodoResponse toAdmin(Todo todo) {
-		return new AdminTodoResponse(todo.getId(), todo.getTitle(), todo.isCompleted(), todo.getCreatedAt(),
-				todo.getOwnerId());
+	/** @param owner {@code null} if unknown; the response then has only the owner's ID */
+	static AdminTodoResponse toAdmin(Todo todo, UserProfile owner) {
+		AdminTodoResponse response = new AdminTodoResponse(todo.getId(), todo.getTitle(), todo.isCompleted(),
+				todo.getCreatedAt(), todo.getOwnerId());
+		return (owner == null) ? response : response.ownerName(owner.name()).ownerEmail(owner.email());
 	}
 
 	static SubtaskResponse toResponse(Subtask subtask) {

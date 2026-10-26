@@ -31,5 +31,20 @@ export const appRoutes: Route[] = [
         (m) => m.AdminTodoListPage
       ),
   },
+  {
+    path: ROUTE_PATHS.adminUsers,
+    canActivate: [roleGuard(ROLES.admin)],
+    loadComponent: () =>
+      import('./domains/users/feature-admin-user-list').then(
+        (m) => m.AdminUserListPage
+      ),
+  },
+  {
+    path: ROUTE_PATHS.accountBlocked,
+    loadComponent: () =>
+      import('./domains/shared/feature-account-blocked').then(
+        (m) => m.AccountBlockedPage
+      ),
+  },
   { path: '**', redirectTo: ROUTE_PATHS.home },
 ];
