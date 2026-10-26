@@ -1,0 +1,54 @@
+<section class="admin-users">
+  <a [routerLink]="urls.home">← Domov</a>
+  <h1>Používatelia</h1>
+
+  @if (error(); as message) {
+  <p class="error" role="alert">{{ message }}</p>
+  } @if (store.userPageIsLoading() && !store.userPageValue()) {
+  <p class="muted">Načítavam…</p>
+  } @else if (store.userPageValue()) {
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Meno</th>
+        <th scope="col">Email</th>
+        <th scope="col">Prvé prihlásenie</th>
+        <th scope="col">Stav</th>
+        <th scope="col"><span class="visually-hidden">Akcia</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (user of store.users(); track user.id) {
+      <tr>
+        <td>{{ user.name ?? '—' }} <code>{{ user.id }}</code></td>
+        <td>{{ user.email ?? '—' }}</td>
+        <td>{{ user.createdAt | date: 'd.M.yyyy HH:mm' }}</td>
+        <td>{{ user.blocked ? 'zablokovaný' : 'aktívny' }}</td>
+        <td>
+          <button
+            type="button"
+            [disabled]="store.setBlockedIsPending()"
+            (click)="toggleBlocked(user)"
+          >
+            {{ user.blocked ? 'Odblokovať' : 'Zablokovať' }}
+          </button>
+        </td>
+      </tr>
+      } @empty {
+      <tr>
+        <td colspan="5" class="muted">Zatiaľ žiadni používatelia.</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+
+  <app-pager
+    [page]="pageIndex()"
+    [totalPages]="store.totalPages()"
+    (pageChange)="goToPage($event)"
+  />
+
+  @if (store.totalElements()) {
+  <p class="muted">Spolu: {{ store.totalElements() }} používateľov</p>
+  } }
+</section>

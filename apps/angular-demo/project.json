@@ -19,12 +19,14 @@
       ],
       "outputs": [
         "{projectRoot}/src/app/domains/todos/data/api",
-        "{projectRoot}/src/app/domains/notifications/data/api"
+        "{projectRoot}/src/app/domains/notifications/data/api",
+        "{projectRoot}/src/app/domains/users/data/api"
       ],
       "options": {
         "commands": [
           "ng-openapi-gen -c ng-openapi-gen.json",
-          "ng-openapi-gen -c ng-openapi-gen.notifications.json"
+          "ng-openapi-gen -c ng-openapi-gen.notifications.json",
+          "ng-openapi-gen -c ng-openapi-gen.users.json"
         ],
         "parallel": false,
         "cwd": "apps/angular-demo"

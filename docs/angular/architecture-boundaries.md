@@ -22,7 +22,8 @@ mylib/src                       workspace library, treated as shared/ui
 ```
 
 Only create the layers a domain needs. Current reference domain: `todos`. `notifications` has only
-`data` and `feature-notification-widget` (the bell, placed in `app.html`).
+`data` and `feature-notification-widget` (the bell, placed in `app.html`); `users` has `data` and
+`feature-admin-user-list`. `shared/ui` holds the `Pager` used by the paged lists of several domains.
 
 ## Dependency rules
 
@@ -33,7 +34,7 @@ Layers only depend **downwards**; domains do not depend on each other.
 | **feature**       | –       | ✓   | ✓          | ✓    |
 | **ui**            | –       | –   | types only | ✓    |
 | **data**          | –       | –   | –          | ✓    |
-| **util**          | –       | –   | –          | –    |
+| **util**          | –       | –   | –          | ✓    |
 
 - Any layer of a domain may import the same or lower layer of `shared` (and `@mylib`).
 - A domain never imports another domain. If two domains need the same code, it moves to `shared`

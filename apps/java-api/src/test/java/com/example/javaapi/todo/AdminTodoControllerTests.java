@@ -12,10 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.example.javaapi.TestUsers;
 import com.example.javaapi.TestcontainersConfiguration;
 
 /**
@@ -34,9 +36,13 @@ class AdminTodoControllerTests {
 	@Autowired
 	private TodoRepository repository;
 
+	@Autowired
+	private JdbcTemplate jdbc;
+
 	@BeforeEach
 	void setUp() {
 		this.repository.deleteAll();
+		TestUsers.create(this.jdbc, "auth0|alice", "auth0|bob", "auth0|user1", "auth0|user2", "auth0|user3");
 	}
 
 	@Test
@@ -52,7 +58,9 @@ class AdminTodoControllerTests {
 	}
 
 	@Test
-	void listsTodosOfAllUsersForAdmin() throws Exception {
+	void listsTodosOfAllUsersWithTheirOwnersForAdmin() throws Exception {
+		this.jdbc.update("UPDATE users SET name = 'Alice', email = 'alice@example.com' WHERE id = 'auth0|alice'");
+		this.jdbc.update("UPDATE users SET name = NULL, email = NULL WHERE id = 'auth0|bob'");
 		this.repository.save(new Todo("auth0|alice", "Alice todo", false));
 		this.repository.save(new Todo("auth0|bob", "Bob todo", true));
 
@@ -62,7 +70,11 @@ class AdminTodoControllerTests {
 			// Newest first
 			.andExpect(jsonPath("$.content[0].title").value("Bob todo"))
 			.andExpect(jsonPath("$.content[0].ownerId").value("auth0|bob"))
+			// Name and email unknown: left out, not null
+			.andExpect(jsonPath("$.content[0].ownerName").doesNotHaveJsonPath())
 			.andExpect(jsonPath("$.content[1].ownerId").value("auth0|alice"))
+			.andExpect(jsonPath("$.content[1].ownerName").value("Alice"))
+			.andExpect(jsonPath("$.content[1].ownerEmail").value("alice@example.com"))
 			.andExpect(jsonPath("$.page.size").value(20))
 			.andExpect(jsonPath("$.page.totalElements").value(2));
 	}

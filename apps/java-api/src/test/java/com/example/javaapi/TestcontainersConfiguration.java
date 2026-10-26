@@ -3,11 +3,12 @@ package com.example.javaapi;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 /**
- * Throwaway PostgreSQL and RabbitMQ for tests. Requires a running Docker daemon.
+ * Throwaway PostgreSQL, RabbitMQ and Redis for tests. Requires a running Docker daemon.
  * Keep the images in sync with compose.yaml.
  */
 @TestConfiguration(proxyBeanMethods = false)
@@ -23,6 +24,13 @@ public class TestcontainersConfiguration {
 	@ServiceConnection
 	RabbitMQContainer rabbitContainer() {
 		return new RabbitMQContainer("rabbitmq:4-management-alpine");
+	}
+
+	/** Redis has no dedicated Testcontainers module; the service connection is matched by the image name. */
+	@Bean
+	@ServiceConnection(name = "redis")
+	GenericContainer<?> redisContainer() {
+		return new GenericContainer<>("redis:8-alpine").withExposedPorts(6379);
 	}
 
 }

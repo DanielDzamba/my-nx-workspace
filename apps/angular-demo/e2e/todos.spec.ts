@@ -346,3 +346,30 @@ test('shows an error when the backend is unreachable', async ({ page }) => {
     'Nepodarilo sa načítať úlohy. Beží backend?'
   );
 });
+
+test('sends a blocked user to the account blocked page', async ({ page }) => {
+  // What java-api answers on every request once an admin has blocked the user
+  // (USER_BLOCKED_PROBLEM_TYPE in the app)
+  await page.route('**/api/**', (route) =>
+    route.fulfill({
+      status: 403,
+      contentType: 'application/problem+json',
+      json: {
+        type: 'https://todo-api/problems/user-blocked',
+        title: 'Account blocked',
+        status: 403,
+      },
+    })
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Prihlásiť sa' }).click();
+
+  await expect(page).toHaveURL(/\/account-blocked$/);
+  await expect(
+    page.getByRole('heading', { name: 'Účet je zablokovaný' })
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Odhlásiť sa' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Prihlásiť sa' })
+  ).toBeVisible();
+});

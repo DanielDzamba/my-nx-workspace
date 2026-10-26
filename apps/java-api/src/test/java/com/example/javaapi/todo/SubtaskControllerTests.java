@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.example.javaapi.TestUsers;
 import com.example.javaapi.TestcontainersConfiguration;
 
 /** The todo detail with its subtasks and the subtask endpoints under {@code /api/todos/{id}/subtasks}. */
@@ -42,6 +44,9 @@ class SubtaskControllerTests {
 	private TodoRepository repository;
 
 	@Autowired
+	private JdbcTemplate jdbc;
+
+	@Autowired
 	private SubtaskRepository subtaskRepository;
 
 	private Todo todo;
@@ -53,6 +58,7 @@ class SubtaskControllerTests {
 			.defaultRequest(get("/").with(as(ALICE)))
 			.build();
 		this.repository.deleteAll();
+		TestUsers.create(this.jdbc, ALICE, BOB);
 		this.todo = this.repository.save(new Todo(ALICE, "Trip", false));
 	}
 

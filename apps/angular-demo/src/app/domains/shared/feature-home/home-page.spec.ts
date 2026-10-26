@@ -64,10 +64,10 @@ describe('HomePage', () => {
     expect(client.logout).toHaveBeenCalledOnce();
   });
 
-  it('links admins to the overview of all todos', () => {
+  it('links admins to the overviews of all todos and users', () => {
     authenticated.set(true);
     user.set({ name: 'Admin', roles: [ROLES.admin] });
 
-    expect(links(render())).toEqual(['/todos', '/admin/todos']);
+    expect(links(render())).toEqual(['/todos', '/admin/todos', '/admin/users']);
   });
 });

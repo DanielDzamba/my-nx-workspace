@@ -10,7 +10,7 @@ generated from it, never the other way round.
    mvn compile (generate-sources)          nx generate-api angular-demo
    openapi-generator-maven-plugin          ng-openapi-gen
                 |                                    |
-   TodosApi, AdminApi,                     fn/* functions + models, per domain:
+   TodosApi, AdminApi, UsersApi,           fn/* functions + models, per domain:
    NotificationsApi, HelloApi              apps/angular-demo/src/app/domains/<domain>/data/api
    + request/response DTOs                 (tags per ng-openapi-gen*.json, git-ignored)
    apps/java-api/target/generated-sources

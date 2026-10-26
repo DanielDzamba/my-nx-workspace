@@ -13,11 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.example.javaapi.TestUsers;
 import com.example.javaapi.TestcontainersConfiguration;
 
 /** Paging, filtering and sorting of {@code GET /api/todos}. */
@@ -34,6 +36,9 @@ class TodoListControllerTests {
 	private TodoRepository repository;
 
 	@Autowired
+	private JdbcTemplate jdbc;
+
+	@Autowired
 	private SubtaskRepository subtaskRepository;
 
 	@BeforeEach
@@ -43,6 +48,7 @@ class TodoListControllerTests {
 			.defaultRequest(get("/").with(jwt().jwt((token) -> token.subject(ALICE))))
 			.build();
 		this.repository.deleteAll();
+		TestUsers.create(this.jdbc, ALICE);
 	}
 
 	/** Saved one after another, so the creation time grows with the argument order. */
