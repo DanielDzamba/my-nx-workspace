@@ -13,8 +13,9 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import type { MutationResult } from '@angular-architects/ngrx-toolkit';
 import { ROUTE_URLS } from '../../shared/util';
-import { Subtask, TodoDetail, TodoDetailStore } from '../data';
+import { Subtask, TodoDetail, TodoDetailStore, isConflict } from '../data';
 import { TodoAddForm } from '../ui';
+import { TODO_CONFLICT_MESSAGE } from '../util';
 
 /** One todo (`/todos/:id`): rename, complete, delete, and manage its subtasks. */
 @Component({
@@ -62,17 +63,19 @@ export class TodoDetailPage {
     }
     const result = await this.store.updateTodo({
       id: todo.id,
+      version: todo.version,
       changes: { title, completed: todo.completed },
     });
-    this.handle(result, 'Úlohu sa nepodarilo uložiť.');
+    this.handle(result, this.saveErrorMessage(result));
   }
 
   protected async toggle(todo: TodoDetail): Promise<void> {
     const result = await this.store.updateTodo({
       id: todo.id,
+      version: todo.version,
       changes: { title: todo.title, completed: !todo.completed },
     });
-    this.handle(result, 'Úlohu sa nepodarilo uložiť.');
+    this.handle(result, this.saveErrorMessage(result));
   }
 
   protected async remove(todo: TodoDetail): Promise<void> {
@@ -117,6 +120,13 @@ export class TodoDetailPage {
       id: subtask.id,
     });
     this.handle(result, 'Podúlohu sa nepodarilo zmazať.');
+  }
+
+  /** 409: the store has already reloaded the todo, which resets the title draft. */
+  private saveErrorMessage(result: MutationResult<unknown>): string {
+    return result.status === 'error' && isConflict(result.error)
+      ? TODO_CONFLICT_MESSAGE
+      : 'Úlohu sa nepodarilo uložiť.';
   }
 
   /** Shows `message` on failure, clears the error on success. Returns whether it succeeded. */

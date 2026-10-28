@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -49,6 +50,9 @@ class TodoControllerTests {
 
 	@Autowired
 	private JdbcTemplate jdbc;
+
+	@Autowired
+	private TransactionTemplate transaction;
 
 	@BeforeEach
 	void setUp(WebApplicationContext context) {
@@ -154,6 +158,88 @@ class TodoControllerTests {
 				{"title": "Renamed"}"""))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.completed").value(true));
+	}
+
+	@Test
+	void newTodoStartsAtVersionZero() throws Exception {
+		mockMvc.perform(post("/api/todos").contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": "New"}""")).andExpect(jsonPath("$.version").value(0));
+	}
+
+	@Test
+	void updateWithCurrentVersionIncrementsIt() throws Exception {
+		Todo todo = this.repository.save(new Todo(ALICE, "Draft", false));
+
+		mockMvc.perform(put("/api/todos/{id}", todo.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": "Final", "version": 0}"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.title").value("Final"))
+			// The client sends this one with its next change
+			.andExpect(jsonPath("$.version").value(1));
+		mockMvc.perform(get("/api/todos/{id}", todo.getId())).andExpect(jsonPath("$.version").value(1));
+		mockMvc.perform(get("/api/todos")).andExpect(jsonPath("$.content[0].version").value(1));
+	}
+
+	/**
+	 * Lost update: tab A renames the todo, tab B still shows the old state and ticks "completed".
+	 * B's request carries the version it edited, so it is rejected instead of reverting A's rename.
+	 */
+	@Test
+	void rejectsUpdateBasedOnOutdatedVersion() throws Exception {
+		Todo todo = this.repository.save(new Todo(ALICE, "Old title", false));
+		mockMvc.perform(put("/api/todos/{id}", todo.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": "Renamed in tab A", "version": 0}""")).andExpect(status().isOk());
+
+		mockMvc.perform(put("/api/todos/{id}", todo.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": "Old title", "completed": true, "version": 0}"""))
+			.andExpect(status().isConflict())
+			.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+			.andExpect(jsonPath("$.status").value(409));
+
+		Todo unchanged = this.repository.findById(todo.getId()).orElseThrow();
+		assertThat(unchanged.getTitle()).isEqualTo("Renamed in tab A");
+		assertThat(unchanged.isCompleted()).isFalse();
+		assertThat(unchanged.getVersion()).isEqualTo(1);
+	}
+
+	/** Clients that do not send a version yet (e.g. a cached old frontend) work as before. */
+	@Test
+	void updateWithoutVersionOverwritesAsBefore() throws Exception {
+		Todo todo = this.repository.save(new Todo(ALICE, "Draft", false));
+		this.jdbc.update("UPDATE todo SET version = 5 WHERE id = ?", todo.getId());
+
+		mockMvc.perform(put("/api/todos/{id}", todo.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+				{"title": "Final"}"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.title").value("Final"))
+			.andExpect(jsonPath("$.version").value(6));
+	}
+
+	/**
+	 * Two requests change the same todo at the same time: both pass the version check, the second
+	 * UPDATE finds the row at a newer version. Simulated in one transaction: the todo is loaded
+	 * (version 0), then the row is changed behind Hibernate's back, then the request runs and gets
+	 * the already loaded, now outdated todo.
+	 */
+	@Test
+	void answersConflictWhenTodoChangesBetweenCheckAndCommit() {
+		Todo saved = this.repository.save(new Todo(ALICE, "Draft", false));
+
+		this.transaction.executeWithoutResult((status) -> {
+			this.repository.findById(saved.getId()).orElseThrow();
+			this.jdbc.update("UPDATE todo SET title = 'Concurrent', version = version + 1 WHERE id = ?", saved.getId());
+			try {
+				mockMvc.perform(put("/api/todos/{id}", saved.getId()).contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{"title": "Final", "version": 0}"""))
+					.andExpect(status().isConflict())
+					.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+			}
+			catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+			status.setRollbackOnly();
+		});
 	}
 
 	@Test

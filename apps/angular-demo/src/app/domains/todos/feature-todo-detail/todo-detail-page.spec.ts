@@ -13,7 +13,7 @@ import {
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ROUTE_PATHS, ROUTE_URLS } from '../../shared/util';
 import { Subtask, TodoDetail } from '../data';
-import { TODO_STATUSES } from '../util';
+import { TODO_CONFLICT_MESSAGE, TODO_STATUSES } from '../util';
 import { TodoDetailPage } from './todo-detail-page';
 
 /** Stands in for the list page, which the detail navigates to after deleting. */
@@ -31,6 +31,7 @@ const trip: TodoDetail = {
   title: 'Trip',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  version: 2,
   subtasks: [pack],
 };
 
@@ -137,26 +138,81 @@ describe('TodoDetailPage', () => {
     expect(req.request.body).toEqual({
       title: 'Trip to Rome',
       completed: false,
+      version: 2,
     });
-    req.flush({ ...trip, title: 'Trip to Rome' });
+    req.flush({ ...trip, title: 'Trip to Rome', version: 3 });
     await settle();
 
     expect(input.value).toBe('Trip to Rome');
     expect(button('Uložiť').disabled).toBe(true);
   });
 
-  it('marks the todo as completed', async () => {
+  it('marks the todo as completed and sends the new version with the next change', async () => {
+    await open();
+    const checkbox = () =>
+      element().querySelector('.completed input') as HTMLInputElement;
+    checkbox().click();
+
+    const req = http.expectOne({ method: 'PUT', url: '/api/todos/1' });
+    expect(req.request.body).toEqual({
+      title: 'Trip',
+      completed: true,
+      version: 2,
+    });
+    req.flush({ ...trip, completed: true, version: 3 });
+    await settle();
+    expect(checkbox().checked).toBe(true);
+
+    checkbox().click();
+    const next = http.expectOne({ method: 'PUT', url: '/api/todos/1' });
+    expect(next.request.body).toEqual({
+      title: 'Trip',
+      completed: false,
+      version: 3,
+    });
+    next.flush({ ...trip, version: 4 });
+    await settle();
+  });
+
+  it('reloads the todo and explains it when it was changed elsewhere (409)', async () => {
     await open();
     (element().querySelector('.completed input') as HTMLInputElement).click();
 
-    const req = http.expectOne({ method: 'PUT', url: '/api/todos/1' });
-    expect(req.request.body).toEqual({ title: 'Trip', completed: true });
-    req.flush({ ...trip, completed: true });
+    http
+      .expectOne({ method: 'PUT', url: '/api/todos/1' })
+      .flush('conflict', { status: 409, statusText: 'Conflict' });
+    // Like flushReload in the list spec: the reload is a pending task, so no whenStable() first
+    await new Promise((resolve) => setTimeout(resolve));
+    harness.detectChanges();
+    // Another tab has renamed it in the meantime
+    http
+      .expectOne({ method: 'GET', url: '/api/todos/1' })
+      .flush({ ...trip, title: 'Trip to Rome', version: 3 });
     await settle();
 
+    expect(element().querySelector('[role=alert]')?.textContent).toContain(
+      TODO_CONFLICT_MESSAGE
+    );
+    expect(
+      (element().querySelector('.title-form input') as HTMLInputElement).value
+    ).toBe('Trip to Rome');
     expect(
       (element().querySelector('.completed input') as HTMLInputElement).checked
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it('shows a generic error when saving fails otherwise', async () => {
+    await open();
+    (element().querySelector('.completed input') as HTMLInputElement).click();
+
+    http
+      .expectOne({ method: 'PUT', url: '/api/todos/1' })
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+    await settle();
+
+    expect(element().querySelector('[role=alert]')?.textContent).toContain(
+      'Úlohu sa nepodarilo uložiť.'
+    );
   });
 
   it('adds, completes and removes subtasks', async () => {

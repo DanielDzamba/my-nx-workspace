@@ -85,10 +85,22 @@ public class TodoService {
 	 * {@link TodoCompletedEvent} in the outbox, in this same transaction: the event exists if and
 	 * only if the change is committed. Consumers (notifications) handle it later, asynchronously, so
 	 * this request neither waits for them nor fails when they or the broker do.
+	 * <p>
+	 * Optimistic locking: the todo is loaded fresh on every request, so its {@code @Version} alone
+	 * never sees that the client edited an outdated copy (two tabs: A renames and saves, B still shows
+	 * the old title, ticks "completed" and saves; A's rename would be lost). The client therefore sends
+	 * the version it edited, and a different current version is rejected with 409. The version is
+	 * compared, not set onto the managed entity: Hibernate checks against the version it loaded, not
+	 * one changed by the application. Without a version (older clients) the update overwrites as
+	 * before.
 	 */
 	@Transactional
 	public TodoResponse update(String ownerId, long id, TodoRequest request) {
 		Todo todo = getTodo(ownerId, id);
+		if (request.getVersion() != null && request.getVersion() != todo.getVersion()) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+					"Todo " + id + " was changed in the meantime; version " + request.getVersion() + " is outdated");
+		}
 		boolean wasCompleted = todo.isCompleted();
 		todo.setTitle(request.getTitle().strip());
 		if (request.getCompleted() != null) {
@@ -98,6 +110,10 @@ public class TodoService {
 			this.outbox.record("Todo", todo.getId(), TodoCompletedEvent.TYPE,
 					new TodoCompletedEvent(todo.getId(), ownerId, todo.getTitle(), Instant.now()));
 		}
+		// Hibernate increments the version when it writes the UPDATE. Flush now, so the response
+		// carries the new version (the client sends it with its next change), and a concurrent change
+		// fails here with ObjectOptimisticLockingFailureException (409) instead of at commit.
+		this.repository.flush();
 		return TodoMapper.toResponse(todo);
 	}
 

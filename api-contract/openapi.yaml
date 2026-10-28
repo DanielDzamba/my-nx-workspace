@@ -137,6 +137,11 @@ paths:
       tags: [todos]
       operationId: updateTodo
       summary: Change a todo
+      description: |
+        Optimistic locking: send the `version` of the todo the user edited. If the todo has been
+        changed since (another tab or device saved first), the update is rejected with `409` instead
+        of silently overwriting that change; the client reloads the todo and the user redoes the edit.
+        Without `version` the todo is overwritten as before (last write wins).
       requestBody:
         required: true
         content:
@@ -158,6 +163,14 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            The todo was changed since the sent `version` was read (or by a concurrent request);
+            nothing was changed. Reload the todo and apply the change again.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
     delete:
       tags: [todos]
       operationId: deleteTodo
@@ -488,6 +501,13 @@ components:
         completed:
           type: boolean
           description: Missing means `false` on create and "keep the current value" on update.
+        version:
+          type: integer
+          format: int64
+          description: |
+            Update only: the `version` of the todo the change is based on (from the response that
+            was edited). A different current version answers `409`. Missing means no check (last
+            write wins). Ignored on create.
 
     SubtaskRequest:
       type: object
@@ -510,7 +530,7 @@ components:
 
     TodoResponse:
       type: object
-      required: [id, title, completed, createdAt]
+      required: [id, title, completed, createdAt, version]
       properties:
         id:
           type: integer
@@ -522,6 +542,12 @@ components:
         createdAt:
           type: string
           format: date-time
+        version:
+          type: integer
+          format: int64
+          description: |
+            Grows with every change of the todo (not of its subtasks). Send it back in
+            `TodoRequest.version` on update to detect concurrent changes.
 
     TodoSummaryResponse:
       description: A todo in the paged list, with how far its subtasks are.

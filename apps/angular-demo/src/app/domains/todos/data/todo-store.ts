@@ -16,11 +16,22 @@ import {
   withState,
 } from '@ngrx/signals';
 import { TodoQuery } from '../util';
+import { isConflict } from './http-status';
 import { TodoClient } from './todo-client';
 
 export interface TodoChanges {
   title: string;
   completed: boolean;
+}
+
+/**
+ * A change of a todo, based on the `version` the user saw (optimistic locking): if the todo has
+ * been changed since, the server rejects it with 409 instead of overwriting the newer change.
+ */
+export interface TodoUpdate {
+  id: number;
+  version: number;
+  changes: TodoChanges;
 }
 
 /**
@@ -61,9 +72,15 @@ export const TodoStore = signalStore(
       onSuccess: () => store._reload(),
     }),
     updateTodo: rxMutation({
-      operation: ({ id, changes }: { id: number; changes: TodoChanges }) =>
-        store._client.update(id, changes),
+      operation: ({ id, version, changes }: TodoUpdate) =>
+        store._client.update(id, { ...changes, version }),
       onSuccess: () => store._reload(),
+      // 409: the list shows an outdated todo; reload it so the user can redo the change
+      onError: (error) => {
+        if (isConflict(error)) {
+          store._reload();
+        }
+      },
     }),
     removeTodo: rxMutation({
       operation: (id: number) => store._client.delete(id),

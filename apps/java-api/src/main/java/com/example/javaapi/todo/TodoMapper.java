@@ -20,24 +20,25 @@ final class TodoMapper {
 	}
 
 	static TodoResponse toResponse(Todo todo) {
-		return new TodoResponse(todo.getId(), todo.getTitle(), todo.isCompleted(), todo.getCreatedAt());
+		return new TodoResponse(todo.getId(), todo.getTitle(), todo.isCompleted(), todo.getCreatedAt(),
+				todo.getVersion());
 	}
 
 	static TodoSummaryResponse toSummary(Todo todo, SubtaskCounts counts) {
 		return new TodoSummaryResponse(todo.getId(), todo.getTitle(), todo.isCompleted(), todo.getCreatedAt(),
-				counts.total(), counts.completed());
+				todo.getVersion(), counts.total(), counts.completed());
 	}
 
 	/** Reads the lazy {@code subtasks} collection, so call it inside the transaction. */
 	static TodoDetailResponse toDetail(Todo todo) {
 		return new TodoDetailResponse(todo.getId(), todo.getTitle(), todo.isCompleted(), todo.getCreatedAt(),
-				todo.getSubtasks().stream().map(TodoMapper::toResponse).toList());
+				todo.getVersion(), todo.getSubtasks().stream().map(TodoMapper::toResponse).toList());
 	}
 
 	/** @param owner {@code null} if unknown; the response then has only the owner's ID */
 	static AdminTodoResponse toAdmin(Todo todo, UserProfile owner) {
 		AdminTodoResponse response = new AdminTodoResponse(todo.getId(), todo.getTitle(), todo.isCompleted(),
-				todo.getCreatedAt(), todo.getOwnerId());
+				todo.getCreatedAt(), todo.getVersion(), todo.getOwnerId());
 		return (owner == null) ? response : response.ownerName(owner.name()).ownerEmail(owner.email());
 	}
 

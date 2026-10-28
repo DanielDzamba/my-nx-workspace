@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "todo")
@@ -33,6 +34,16 @@ public class Todo {
 	/** Auth0 user ID ({@code sub} claim) of the user who created the todo. */
 	@Column(name = "owner_id", nullable = false, updatable = false)
 	private String ownerId;
+
+	/**
+	 * Optimistic locking: Hibernate increments it on every update and adds {@code WHERE version = ?}
+	 * to the UPDATE, so of two concurrent transactions on the same todo only the first commits; the
+	 * second fails with {@code ObjectOptimisticLockingFailureException} (409). That covers only the
+	 * short time between loading and committing; a client that edited an older copy is caught by
+	 * {@link TodoService#update}, which compares the version the client sends.
+	 */
+	@Version
+	private long version;
 
 	/**
 	 * Read-only side of the relation ({@link Subtask#getTodo()} owns the foreign key). Collections
@@ -76,6 +87,10 @@ public class Todo {
 
 	public Instant getCreatedAt() {
 		return this.createdAt;
+	}
+
+	public long getVersion() {
+		return this.version;
 	}
 
 	public String getOwnerId() {

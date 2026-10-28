@@ -20,6 +20,7 @@ const trip: TodoDetail = {
   title: 'Trip',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  version: 2,
   subtasks: [pack],
 };
 
@@ -93,27 +94,73 @@ describe('TodoDetailStore', () => {
     expect(store.todoError()).toBeTruthy();
   });
 
-  it('applies an update and keeps the subtasks', async () => {
+  it('applies an update with its new version and keeps the subtasks', async () => {
     const store = await loaded();
     const pending = store.updateTodo({
       id: 1,
+      version: 2,
       changes: { title: 'Trip to Rome', completed: true },
     });
-    http
-      .expectOne({ method: 'PUT', url: 'https://api.test/api/todos/1' })
-      .flush({
-        id: 1,
-        title: 'Trip to Rome',
-        completed: true,
-        createdAt: trip.createdAt,
-      });
+    const req = http.expectOne({
+      method: 'PUT',
+      url: 'https://api.test/api/todos/1',
+    });
+    expect(req.request.body).toEqual({
+      title: 'Trip to Rome',
+      completed: true,
+      version: 2,
+    });
+    req.flush({
+      id: 1,
+      title: 'Trip to Rome',
+      completed: true,
+      createdAt: trip.createdAt,
+      version: 3,
+    });
     await pending;
 
     expect(store.todo()).toEqual({
       ...trip,
       title: 'Trip to Rome',
       completed: true,
+      version: 3,
     });
+  });
+
+  it('reloads the todo when an update is based on an outdated version (409)', async () => {
+    const store = await loaded();
+    const pending = store.updateTodo({
+      id: 1,
+      version: 2,
+      changes: { title: 'Trip', completed: true },
+    });
+    http
+      .expectOne({ method: 'PUT', url: 'https://api.test/api/todos/1' })
+      .flush('conflict', { status: 409, statusText: 'Conflict' });
+
+    expect((await pending).status).toBe('error');
+    TestBed.tick();
+    const changedElsewhere = { ...trip, title: 'Trip to Rome', version: 3 };
+    http.expectOne('https://api.test/api/todos/1').flush(changedElsewhere);
+    await settle();
+
+    expect(store.todo()).toEqual(changedElsewhere);
+  });
+
+  it('keeps the todo when an update fails otherwise', async () => {
+    const store = await loaded();
+    const pending = store.updateTodo({
+      id: 1,
+      version: 2,
+      changes: { title: 'Trip', completed: true },
+    });
+    http
+      .expectOne({ method: 'PUT', url: 'https://api.test/api/todos/1' })
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+
+    expect((await pending).status).toBe('error');
+    TestBed.tick();
+    expect(store.todo()).toEqual(trip);
   });
 
   it('adds, updates and removes subtasks', async () => {

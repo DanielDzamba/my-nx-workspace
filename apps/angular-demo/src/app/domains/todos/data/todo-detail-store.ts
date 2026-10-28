@@ -1,5 +1,5 @@
 import { computed, inject } from '@angular/core';
-import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { HttpStatusCode } from '@angular/common/http';
 import { rxResource } from '@angular/core/rxjs-interop';
 import {
   rxMutation,
@@ -16,25 +16,15 @@ import {
   withProps,
   withState,
 } from '@ngrx/signals';
+import { httpStatus, isConflict } from './http-status';
 import { Subtask, TodoDetail } from './todo';
 import { TodoClient } from './todo-client';
-import type { TodoChanges } from './todo-store';
-
-/**
- * A resource hands out non-`Error` failures (like `HttpErrorResponse`) wrapped, with the
- * original as `cause`.
- */
-function httpStatus(error: unknown): number | undefined {
-  const cause =
-    error instanceof HttpErrorResponse
-      ? error
-      : (error as { cause?: unknown } | undefined)?.cause;
-  return cause instanceof HttpErrorResponse ? cause.status : undefined;
-}
+import type { TodoChanges, TodoUpdate } from './todo-store';
 
 /**
  * One todo with its subtasks, keyed by the id from the route (`connectId`). Mutations apply the
- * server's answer to the loaded detail instead of reloading it.
+ * server's answer to the loaded detail instead of reloading it; only a 409 on update (the todo
+ * was changed elsewhere) reloads it, so the user sees the current state and can redo the change.
  */
 export const TodoDetailStore = signalStore(
   withDevtools('todo-detail'),
@@ -67,10 +57,16 @@ export const TodoDetailStore = signalStore(
   })),
   withMutations((store) => ({
     updateTodo: rxMutation({
-      operation: ({ id, changes }: { id: number; changes: TodoChanges }) =>
-        store._client.update(id, changes),
+      operation: ({ id, version, changes }: TodoUpdate) =>
+        store._client.update(id, { ...changes, version }),
+      // The response carries the new version, which the next change sends
       onSuccess: (updated) =>
         store._patchTodo((todo) => ({ ...todo, ...updated })),
+      onError: (error) => {
+        if (isConflict(error)) {
+          store._todoReload();
+        }
+      },
     }),
     removeTodo: rxMutation({
       operation: (id: number) => store._client.delete(id),
