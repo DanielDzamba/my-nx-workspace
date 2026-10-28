@@ -14,6 +14,7 @@ const milk: AdminTodo = {
   title: 'Buy milk',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  version: 0,
   ownerId: 'auth0|alice',
 };
 

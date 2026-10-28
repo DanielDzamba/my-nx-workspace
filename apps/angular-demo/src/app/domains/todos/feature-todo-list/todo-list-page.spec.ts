@@ -13,7 +13,7 @@ import {
 import { RouterTestingHarness } from '@angular/router/testing';
 import { ROUTE_PATHS, ROUTE_URLS } from '../../shared/util';
 import { TodoPage, TodoSummary } from '../data';
-import { TODO_STATUSES } from '../util';
+import { TODO_CONFLICT_MESSAGE, TODO_STATUSES } from '../util';
 import { TodoListPage } from './todo-list-page';
 
 const milk: TodoSummary = {
@@ -21,6 +21,7 @@ const milk: TodoSummary = {
   title: 'Buy milk',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  version: 3,
   subtaskCount: 0,
   completedSubtaskCount: 0,
 };
@@ -223,11 +224,54 @@ describe('TodoListPage', () => {
     ).click();
 
     const req = http.expectOne({ method: 'PUT', url: '/api/todos/1' });
-    expect(req.request.body).toEqual({ title: 'Buy milk', completed: true });
-    req.flush({ ...milk, completed: true });
-    await flushReload(page([{ ...milk, completed: true }]));
+    // The version the list shows: the server rejects the change if the todo is newer by now
+    expect(req.request.body).toEqual({
+      title: 'Buy milk',
+      completed: true,
+      version: 3,
+    });
+    req.flush({ ...milk, completed: true, version: 4 });
+    await flushReload(page([{ ...milk, completed: true, version: 4 }]));
 
     expect(element().querySelector('app-todo-item.completed')).not.toBeNull();
+  });
+
+  it('reloads the list and explains it when the todo was changed elsewhere (409)', async () => {
+    await open(ROUTE_URLS.todos, page([milk]));
+    button('Upraviť').click();
+    await settle();
+    const input = element().querySelector('.edit-input') as HTMLInputElement;
+    input.value = 'Buy oat milk';
+    input.dispatchEvent(new Event('input'));
+    button('Uložiť').click();
+
+    http
+      .expectOne({ method: 'PUT', url: '/api/todos/1' })
+      .flush('conflict', { status: 409, statusText: 'Conflict' });
+    // Another tab has renamed it in the meantime
+    await flushReload(page([{ ...milk, title: 'Buy soy milk', version: 4 }]));
+
+    expect(element().querySelector('[role=alert]')?.textContent).toContain(
+      TODO_CONFLICT_MESSAGE
+    );
+    expect(element().querySelector('.edit-input')).toBeNull();
+    expect(titles()).toEqual(['Buy soy milk']);
+  });
+
+  it('shows a generic error when saving fails otherwise', async () => {
+    await open(ROUTE_URLS.todos, page([milk]));
+    (
+      element().querySelector('input[type=checkbox]') as HTMLInputElement
+    ).click();
+
+    http
+      .expectOne({ method: 'PUT', url: '/api/todos/1' })
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+    await settle();
+
+    expect(element().querySelector('[role=alert]')?.textContent).toContain(
+      'Úlohu sa nepodarilo uložiť.'
+    );
   });
 
   it('renames a todo', async () => {
@@ -244,6 +288,7 @@ describe('TodoListPage', () => {
     expect(req.request.body).toEqual({
       title: 'Buy oat milk',
       completed: false,
+      version: 3,
     });
     req.flush({ ...milk, title: 'Buy oat milk' });
     await flushReload(page([{ ...milk, title: 'Buy oat milk' }]));

@@ -9,10 +9,11 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { MutationResult } from '@angular-architects/ngrx-toolkit';
 import { ROUTE_URLS } from '../../shared/util';
-import { Todo, TodoStore } from '../data';
+import { Todo, TodoChanges, TodoStore, isConflict } from '../data';
 import { Pager } from '../../shared/ui';
 import { TodoAddForm, TodoFilter, TodoItem } from '../ui';
 import {
+  TODO_CONFLICT_MESSAGE,
   TODO_STATUSES,
   TodoQuery,
   parseTodoQuery,
@@ -105,12 +106,20 @@ export class TodoListPage {
     this.handle(result, 'Úlohu sa nepodarilo zmazať.');
   }
 
-  private async update(
-    todo: Todo,
-    changes: { title: string; completed: boolean }
-  ): Promise<void> {
-    const result = await this.store.updateTodo({ id: todo.id, changes });
-    if (this.handle(result, 'Úlohu sa nepodarilo uložiť.')) {
+  /** Sends the version the list shows, so a change based on an outdated todo is rejected (409). */
+  private async update(todo: Todo, changes: TodoChanges): Promise<void> {
+    const result = await this.store.updateTodo({
+      id: todo.id,
+      version: todo.version,
+      changes,
+    });
+    const conflict = result.status === 'error' && isConflict(result.error);
+    const saved = this.handle(
+      result,
+      conflict ? TODO_CONFLICT_MESSAGE : 'Úlohu sa nepodarilo uložiť.'
+    );
+    // On 409 the store reloads the page; the user redoes the change on the current title
+    if (saved || conflict) {
       this.editingId.set(null);
     }
   }

@@ -9,6 +9,7 @@ const milk: TodoSummary = {
   title: 'Buy milk',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  version: 0,
   subtaskCount: 0,
   completedSubtaskCount: 0,
 };

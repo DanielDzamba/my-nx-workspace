@@ -12,6 +12,7 @@ interface Todo {
   title: string;
   completed: boolean;
   createdAt: string;
+  version: number;
   subtasks: Subtask[];
 }
 
@@ -34,9 +35,13 @@ const PAGE_SIZE = 10;
  */
 async function mockTodoApi(
   page: Page,
-  initial: Omit<Todo, 'subtasks'>[] = []
+  initial: Omit<Todo, 'subtasks' | 'version'>[] = []
 ): Promise<void> {
-  const todos: Todo[] = initial.map((todo) => ({ ...todo, subtasks: [] }));
+  const todos: Todo[] = initial.map((todo) => ({
+    ...todo,
+    version: 0,
+    subtasks: [],
+  }));
   let nextId = Math.max(0, ...todos.map((t) => t.id)) + 1;
   const notifications: Notification[] = [];
 
@@ -67,8 +72,8 @@ async function mockTodoApi(
   }
 
   function withoutSubtasks(todo: Todo): Omit<Todo, 'subtasks'> {
-    const { id, title, completed, createdAt } = todo;
-    return { id, title, completed, createdAt };
+    const { id, title, completed, createdAt, version } = todo;
+    return { id, title, completed, createdAt, version };
   }
 
   async function handleSubtask(route: Route, todo: Todo, subtaskId?: number) {
@@ -126,13 +131,23 @@ async function mockTodoApi(
           createdAt: new Date().toISOString(),
           subtasks: [],
           ...request.postDataJSON(),
+          version: 0,
         };
         todos.push(todo);
         return route.fulfill({ status: 201, json: withoutSubtasks(todo) });
       }
       case 'PUT': {
+        const { version, ...changes } = request.postDataJSON();
+        // Optimistic locking: a change based on an outdated version is rejected
+        if (version !== undefined && version !== todos[index].version) {
+          return route.fulfill({ status: 409 });
+        }
         const wasCompleted = todos[index].completed;
-        todos[index] = { ...todos[index], ...request.postDataJSON() };
+        todos[index] = {
+          ...todos[index],
+          ...changes,
+          version: todos[index].version + 1,
+        };
         if (!wasCompleted && todos[index].completed) {
           notifications.unshift({
             id: nextId++,

@@ -21,6 +21,7 @@ const milk: TodoSummary = {
   title: 'Buy milk',
   completed: false,
   createdAt: '2026-09-26T12:00:00Z',
+  version: 3,
   subtaskCount: 2,
   completedSubtaskCount: 1,
 };
@@ -138,11 +139,19 @@ describe('TodoStore', () => {
 
     const updated = store.updateTodo({
       id: 1,
+      version: 3,
       changes: { title: 'Buy milk', completed: true },
     });
-    http
-      .expectOne({ method: 'PUT', url: 'https://api.test/api/todos/1' })
-      .flush({ ...milk, completed: true });
+    const updateRequest = http.expectOne({
+      method: 'PUT',
+      url: 'https://api.test/api/todos/1',
+    });
+    expect(updateRequest.request.body).toEqual({
+      title: 'Buy milk',
+      completed: true,
+      version: 3,
+    });
+    updateRequest.flush({ ...milk, completed: true, version: 4 });
     await updated;
     TestBed.tick();
     expectPageRequest().flush(page([bread]));
@@ -158,6 +167,42 @@ describe('TodoStore', () => {
     await settle();
 
     expect(store.todos()).toEqual([]);
+  });
+
+  it('reloads the page when an update is based on an outdated version (409)', async () => {
+    const store = await setup();
+    const pending = store.updateTodo({
+      id: 1,
+      version: 3,
+      changes: { title: 'Buy milk', completed: true },
+    });
+    http
+      .expectOne({ method: 'PUT', url: 'https://api.test/api/todos/1' })
+      .flush('conflict', { status: 409, statusText: 'Conflict' });
+
+    expect((await pending).status).toBe('error');
+    TestBed.tick();
+    const renamed = { ...milk, title: 'Buy oat milk', version: 4 };
+    expectPageRequest().flush(page([renamed, bread]));
+    await settle();
+
+    expect(store.todos()).toEqual([renamed, bread]);
+  });
+
+  it('does not reload the page when an update fails otherwise', async () => {
+    const store = await setup();
+    const pending = store.updateTodo({
+      id: 1,
+      version: 3,
+      changes: { title: 'Buy milk', completed: true },
+    });
+    http
+      .expectOne({ method: 'PUT', url: 'https://api.test/api/todos/1' })
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+
+    expect((await pending).status).toBe('error');
+    TestBed.tick();
+    expect(store.todos()).toEqual([milk, bread]);
   });
 
   it('keeps the list when removing fails', async () => {
