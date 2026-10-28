@@ -46,19 +46,23 @@ import tools.jackson.databind.json.JsonMapper;
  * The whole asynchronous flow against real PostgreSQL and RabbitMQ containers: completing a todo
  * writes an outbox event, the relay publishes it, the listener stores a notification. The steps run
  * on other threads after the request has returned, so the tests wait for the result (Awaitility).
+ * <p>
+ * The Spring context (database, broker, relay, listener) is shared with other test classes, whose
+ * completed todos may still be on their way when a test here starts. Each test therefore uses its
+ * own user and only looks at that user's notifications.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Testcontainers(disabledWithoutDocker = true)
 class NotificationFlowTests {
 
-	private static final String ALICE = "auth0|alice";
-
 	private static final String BOB = "auth0|bob";
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
 	private MockMvc mockMvc;
+
+	private String owner;
 
 	@Autowired
 	private JdbcClient jdbc;
@@ -77,9 +81,10 @@ class NotificationFlowTests {
 
 	@BeforeEach
 	void setUp(WebApplicationContext context) {
+		this.owner = "auth0|notification-test-" + UUID.randomUUID();
 		this.mockMvc = MockMvcBuilders.webAppContextSetup(context)
 			.apply(springSecurity())
-			.defaultRequest(get("/").with(as(ALICE)))
+			.defaultRequest(get("/").with(as(this.owner)))
 			.build();
 		this.jdbc.sql("DELETE FROM todo").update();
 		this.jdbc.sql("DELETE FROM outbox_event").update();
@@ -96,7 +101,7 @@ class NotificationFlowTests {
 
 		complete(id, "Buy milk");
 
-		await().atMost(TIMEOUT).until(() -> this.notifications.count() == 1);
+		await().atMost(TIMEOUT).until(() -> ownNotifications() == 1);
 		mockMvc.perform(get("/api/notifications"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.unreadCount").value(1))
@@ -108,7 +113,7 @@ class NotificationFlowTests {
 		// The outbox row is marked (right after the broker's confirm), so the relay does not send it again
 		await().atMost(TIMEOUT).until(() -> unpublishedEvents() == 0);
 
-		// Bob does not see Alice's notifications
+		// Bob does not see the owner's notifications
 		mockMvc.perform(get("/api/notifications").with(as(BOB)))
 			.andExpect(jsonPath("$.unreadCount").value(0))
 			.andExpect(jsonPath("$.items", hasSize(0)));
@@ -118,7 +123,7 @@ class NotificationFlowTests {
 	void marksAllNotificationsAsRead() throws Exception {
 		complete(createTodo("One"), "One");
 		complete(createTodo("Two"), "Two");
-		await().atMost(TIMEOUT).until(() -> this.notifications.count() == 2);
+		await().atMost(TIMEOUT).until(() -> ownNotifications() == 2);
 
 		mockMvc.perform(post("/api/notifications/read-all")).andExpect(status().isNoContent());
 
@@ -144,7 +149,7 @@ class NotificationFlowTests {
 
 		assertThat(this.jdbc.sql("SELECT count(*) FROM outbox_event").query(Long.class).single()).isEqualTo(1);
 		// Let it arrive, so it cannot show up in the next test
-		await().atMost(TIMEOUT).until(() -> this.notifications.count() == 1);
+		await().atMost(TIMEOUT).until(() -> ownNotifications() == 1);
 	}
 
 	@Test
@@ -158,14 +163,14 @@ class NotificationFlowTests {
 	void processesTheSameEventOnlyOnce() {
 		// At-least-once delivery: e.g. the relay crashed after the broker confirmed and resent it
 		Message message = eventMessage(UUID.randomUUID(),
-				new TodoCompletedEvent(42, ALICE, "Buy milk", Instant.parse("2026-10-19T12:00:00Z")));
+				new TodoCompletedEvent(42, this.owner, "Buy milk", Instant.parse("2026-10-19T12:00:00Z")));
 
 		this.rabbitTemplate.send(MessagingConfig.TODO_EVENTS_EXCHANGE, TodoCompletedEvent.TYPE, message);
 		this.rabbitTemplate.send(MessagingConfig.TODO_EVENTS_EXCHANGE, TodoCompletedEvent.TYPE, message);
 
-		await().atMost(TIMEOUT).until(() -> this.notifications.count() == 1);
+		await().atMost(TIMEOUT).until(() -> ownNotifications() == 1);
 		// Give the second delivery time to be processed (and skipped)
-		await().during(Duration.ofSeconds(1)).atMost(TIMEOUT).until(() -> this.notifications.count() == 1);
+		await().during(Duration.ofSeconds(1)).atMost(TIMEOUT).until(() -> ownNotifications() == 1);
 	}
 
 	@Test
@@ -182,7 +187,6 @@ class NotificationFlowTests {
 				Duration.ofSeconds(20).toMillis());
 		assertThat(deadLetter).isNotNull();
 		assertThat(new String(deadLetter.getBody(), StandardCharsets.UTF_8)).isEqualTo("not json");
-		assertThat(this.notifications.count()).isZero();
 	}
 
 	private Message eventMessage(UUID eventId, TodoCompletedEvent event) {
@@ -210,6 +214,10 @@ class NotificationFlowTests {
 	private void update(long id, String json) throws Exception {
 		mockMvc.perform(put("/api/todos/" + id).contentType(MediaType.APPLICATION_JSON).content(json))
 			.andExpect(status().isOk());
+	}
+
+	private int ownNotifications() {
+		return this.notifications.findTop20ByRecipientIdOrderByCreatedAtDescIdDesc(this.owner).size();
 	}
 
 	private long unpublishedEvents() {
