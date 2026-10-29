@@ -1,0 +1,61 @@
+{
+  "name": "notification-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/notification-service/src/main/java",
+  "tags": ["type:app", "lang:java"],
+  "implicitDependencies": ["api-contract"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "parallelism": false,
+      "inputs": [
+        "{projectRoot}/pom.xml",
+        "{projectRoot}/src/main/**/*",
+        "{projectRoot}/.mvn/**/*",
+        "{workspaceRoot}/api-contract/notification-service/openapi.yaml"
+      ],
+      "outputs": ["{projectRoot}/target"],
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs -B package -DskipTests",
+        "cwd": "apps/notification-service"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "commands": [
+          "docker compose -f ../java-api/compose.yaml up -d --wait notification-postgres rabbitmq",
+          "node ../../tools/scripts/mvnw.mjs spring-boot:run -Dspring-boot.run.profiles=local"
+        ],
+        "parallel": false,
+        "cwd": "apps/notification-service"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "parallelism": false,
+      "inputs": [
+        "{projectRoot}/pom.xml",
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/.mvn/**/*",
+        "{workspaceRoot}/api-contract/notification-service/openapi.yaml"
+      ],
+      "outputs": ["{projectRoot}/target/surefire-reports"],
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs -B test",
+        "cwd": "apps/notification-service"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node ../../tools/scripts/mvnw.mjs -B clean",
+        "cwd": "apps/notification-service"
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Breaking changes of openapi.yaml that were accepted on purpose (oasdiff --err-ignore, see ci.yml).
+# One line per accepted error: `<METHOD> <path> <message>`. Lines that match nothing (like these
+# comments) are harmless. Remove an entry once the change is on main.
+#
+# 2026-10: the notification endpoints moved to notification-service (notification-service/openapi.yaml)
+GET /api/notifications api path removed without deprecation
+POST /api/notifications/read-all api path removed without deprecation

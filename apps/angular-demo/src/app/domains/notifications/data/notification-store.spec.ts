@@ -5,7 +5,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { API_BASE_URL } from '../../shared/util';
+import { NOTIFICATIONS_API_BASE_URL } from '../../shared/util';
 import {
   NOTIFICATION_TYPES,
   Notification,
@@ -16,7 +16,7 @@ import {
   NotificationStore,
 } from './notification-store';
 
-const LIST_URL = 'https://api.test/api/notifications';
+const LIST_URL = 'https://notifications.test/api/notifications';
 const POLL_INTERVAL = 15_000;
 
 const milk: Notification = {
@@ -46,7 +46,10 @@ describe('NotificationStore', () => {
         NotificationStore,
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: API_BASE_URL, useValue: 'https://api.test' },
+        {
+          provide: NOTIFICATIONS_API_BASE_URL,
+          useValue: 'https://notifications.test',
+        },
         { provide: NOTIFICATION_POLL_INTERVAL, useValue: POLL_INTERVAL },
       ],
     });

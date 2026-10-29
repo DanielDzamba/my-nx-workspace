@@ -1,8 +1,13 @@
-# The only Docker build is apps/java-api/Dockerfile, with the repository root as context.
-# Send just what it copies (not node_modules, dist, target, ...).
+# Docker builds: apps/java-api/Dockerfile and apps/notification-service/Dockerfile, both with the
+# repository root as context. Send just what they copy (not node_modules, dist, target, ...).
 *
 !apps/java-api/.mvn
 !apps/java-api/mvnw
 !apps/java-api/pom.xml
 !apps/java-api/src
 !api-contract/openapi.yaml
+!apps/notification-service/.mvn
+!apps/notification-service/mvnw
+!apps/notification-service/pom.xml
+!apps/notification-service/src
+!api-contract/notification-service/openapi.yaml

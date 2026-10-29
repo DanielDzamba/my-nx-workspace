@@ -1,13 +1,17 @@
 # Agent guide
 
-Nx monorepo with two apps:
+Nx monorepo with a frontend and two backend services:
 
-| Project        | Path                | Stack                                                       |
-| -------------- | ------------------- | ----------------------------------------------------------- |
-| `angular-demo` | `apps/angular-demo` | Angular 20 (standalone, signals, NgRx Signal Store), Vitest |
-| `java-api`     | `apps/java-api`     | Spring Boot 4 / Java 21, PostgreSQL, RabbitMQ, Redis        |
-| `mylib`        | `mylib`             | Angular UI library, imported as `@mylib`                    |
-| `api-contract` | `api-contract`      | OpenAPI 3.0 contract of the REST API (design-first)         |
+| Project                | Path                        | Stack                                                       |
+| ---------------------- | --------------------------- | ----------------------------------------------------------- |
+| `angular-demo`         | `apps/angular-demo`         | Angular 20 (standalone, signals, NgRx Signal Store), Vitest |
+| `java-api`             | `apps/java-api`             | Spring Boot 4 / Java 21, PostgreSQL, RabbitMQ, Redis        |
+| `notification-service` | `apps/notification-service` | Spring Boot 4 / Java 21, own PostgreSQL, consumes RabbitMQ  |
+| `mylib`                | `mylib`                     | Angular UI library, imported as `@mylib`                    |
+| `api-contract`         | `api-contract`              | OpenAPI 3.0 contracts of both REST APIs (design-first)      |
+
+The services share no code and no database; they talk only through events (RabbitMQ,
+`docs/java-api/messaging.md`).
 
 Run tasks through Nx: `npx nx <target> <project>` (`lint`, `test`, `build`, `serve`).
 Skills in `.claude/skills` cover running the stack (`runapp`, `run-java-api`) and PRs (`pr`).
@@ -16,12 +20,14 @@ Skills in `.claude/skills` cover running the stack (`runapp`, `run-java-api`) an
 
 Details and the step-by-step workflow: `api-contract/README.md`.
 
-- Every API change starts in `api-contract/openapi.yaml`; then implement the generated interface
-  (Java) and call the generated function (Angular). Never the other way round.
+- Every API change starts in the contract (`api-contract/openapi.yaml` for java-api,
+  `api-contract/notification-service/openapi.yaml`); then implement the generated interface (Java)
+  and call the generated function (Angular). Never the other way round.
 - Never hand-write API DTOs (Java records, TypeScript interfaces) or edit generated code
-  (`apps/java-api/target/generated-sources`, `apps/angular-demo/src/app/domains/todos/data/api`).
+  (`apps/*/target/generated-sources`, `apps/angular-demo/src/app/domains/*/data/api`).
 - Keep changes additive; a breaking change (removed/renamed field, new required parameter, changed
-  type) fails CI (oasdiff) and needs the user's decision.
+  type) fails CI (oasdiff) and needs the user's decision. An accepted one goes, line by line, into
+  `api-contract/oasdiff-err-ignore.txt`.
 
 ## Angular: red lines
 

@@ -22,8 +22,11 @@ export interface Auth0Config {
   clientId: string;
   /** Identifier of the API in Auth0; access tokens are issued for it. */
   audience: string;
-  /** Origin of the API (`API_BASE_URL`); only requests to it get the access token. */
-  apiUrl: string;
+  /**
+   * Origins of the backends (`API_BASE_URL`, `NOTIFICATIONS_API_BASE_URL`); only requests to them
+   * get the access token. Both accept the same token (same Auth0 audience).
+   */
+  apiUrls: string[];
 }
 
 // offline_access: Auth0 issues a refresh token, so the 1 h access token is renewed silently
@@ -56,8 +59,9 @@ export function provideAuth0(config: Auth0Config): EnvironmentProviders {
         ignoreNonceAfterRefresh: true,
         // Name and e-mail come from the ID token; no extra /userinfo request
         autoUserInfo: false,
-        // Trailing slash: `/api` alone would also match e.g. `/api-docs`
-        secureRoutes: [`${config.apiUrl}/api/`],
+        // Trailing slash: `/api` alone would also match e.g. `/api-docs`. Deduplicated: in
+        // development both origins are '' (same origin, the dev server proxies).
+        secureRoutes: [...new Set(config.apiUrls.map((url) => `${url}/api/`))],
         postLoginRoute: ROUTE_URLS.todos,
         unauthorizedRoute: ROUTE_URLS.home,
         logLevel: LogLevel.Warn,

@@ -83,7 +83,7 @@ public class TodoService {
 	/**
 	 * Marking a todo as completed (only the change from open to completed) records a
 	 * {@link TodoCompletedEvent} in the outbox, in this same transaction: the event exists if and
-	 * only if the change is committed. Consumers (notifications) handle it later, asynchronously, so
+	 * only if the change is committed. Consumers (notification-service) handle it later, asynchronously, so
 	 * this request neither waits for them nor fails when they or the broker do.
 	 * <p>
 	 * Optimistic locking: the todo is loaded fresh on every request, so its {@code @Version} alone

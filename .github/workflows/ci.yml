@@ -69,7 +69,28 @@ jobs:
           base: tmp/base-openapi.yaml
           revision: api-contract/openapi.yaml
           fail-on: ERR
+          # Breaking changes accepted on purpose (each one is a reviewed line in this file)
+          err-ignore: api-contract/oasdiff-err-ignore.txt
           # Keep the specs in CI: no upload to oasdiff.com, no PR comment
+          review: 'false'
+          github-token: ''
+
+      # Same check for the contract of notification-service
+      - name: Get notification API contract of the base branch
+        id: base-notification-contract
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p tmp
+          if git show "origin/${{ github.base_ref }}:api-contract/notification-service/openapi.yaml" > tmp/base-notification-openapi.yaml 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check notification API contract for breaking changes
+        if: steps.base-notification-contract.outputs.exists == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0.1.18
+        with:
+          base: tmp/base-notification-openapi.yaml
+          revision: api-contract/notification-service/openapi.yaml
+          fail-on: ERR
           review: 'false'
           github-token: ''
 

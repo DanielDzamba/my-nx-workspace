@@ -19,7 +19,10 @@ describe('provideAuth0', () => {
           domain: 'tenant.eu.auth0.com',
           clientId: 'client-123',
           audience: 'https://todo-api',
-          apiUrl: 'https://api.example.com',
+          apiUrls: [
+            'https://api.example.com',
+            'https://notifications.example.com',
+          ],
         }),
       ],
     });
@@ -49,11 +52,14 @@ describe('provideAuth0', () => {
     });
   });
 
-  it('renews with refresh tokens and sends the token to the API only', async () => {
+  it('renews with refresh tokens and sends the token to the APIs only', async () => {
     const config = await loadConfig();
 
     expect(config.scope).toContain('offline_access');
     expect(config.useRefreshToken).toBe(true);
-    expect(config.secureRoutes).toEqual(['https://api.example.com/api/']);
+    expect(config.secureRoutes).toEqual([
+      'https://api.example.com/api/',
+      'https://notifications.example.com/api/',
+    ]);
   });
 });

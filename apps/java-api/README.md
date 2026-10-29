@@ -19,7 +19,7 @@ npx nx clean java-api
 ## API contract (design-first)
 
 The API is defined in [`api-contract/openapi.yaml`](../../api-contract/openapi.yaml), not in the
-controllers. Every `mvn compile` generates the interfaces (`TodosApi`, `AdminApi`, `UsersApi`, `NotificationsApi`, `HelloApi`) and
+controllers. Every `mvn compile` generates the interfaces (`TodosApi`, `AdminApi`, `UsersApi`, `HelloApi`) and
 the request/response DTOs into `target/generated-sources/openapi`; the controllers implement them,
 so paths, parameters, defaults and validation come from the contract. Workflow:
 [`api-contract/README.md`](../../api-contract/README.md).
@@ -45,8 +45,10 @@ so paths, parameters, defaults and validation come from the contract. Workflow:
 
 ## Messaging (RabbitMQ)
 
-Completing a todo records a `TodoCompleted` event in the outbox table (same transaction); a
-scheduled relay publishes it to RabbitMQ and a listener stores a notification for the owner.
+Completing a todo records a `TodoCompleted` event in the outbox table (same transaction), and
+blocking or unblocking a user a `UserBlocked` / `UserUnblocked` event; a scheduled relay publishes
+them to RabbitMQ. This app only produces events: [notification-service](../notification-service/README.md)
+consumes them (notifications, its copy of the blocked status).
 Concepts (outbox, at-least-once, idempotency, dead-letter queue): [docs/java-api/messaging.md](../../docs/java-api/messaging.md).
 
 | Environment | Where RabbitMQ comes from                                                                   |
@@ -116,7 +118,7 @@ docker build -t java-api -f Dockerfile ../..  # image only; context is the repo 
 - `GET /api/admin/todos?page=&size=&sort=` — one page of all users' todos with `ownerId`, `ownerName`, `ownerEmail` (default 20, newest first); role `ADMIN` only (401 without a token, 403 without the role)
 - `GET /api/admin/users?page=&size=` — all users, newest first; `PUT /api/admin/users/{id}/blocked` with `{"blocked": true|false}` (409 for the admin themselves). Role `ADMIN` only
 - Every `/api` request of a blocked user answers 403 with `type: https://todo-api/problems/user-blocked`
-- `GET /api/notifications` — the signed-in user's newest 20 notifications and `unreadCount`; `POST /api/notifications/read-all` marks all as read. Created asynchronously when a todo becomes completed
+- Notifications (`/api/notifications`) are served by [notification-service](../notification-service/README.md)
 - `GET /actuator/health` (includes the database, RabbitMQ and Redis), `/actuator/health/liveness`, `/actuator/health/readiness`
 
 ## Roles, name and email (Auth0)

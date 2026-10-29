@@ -1,4 +1,4 @@
-package com.example.javaapi.notification;
+package com.example.notificationservice.notification;
 
 import java.util.UUID;
 
@@ -10,9 +10,9 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.javaapi.api.model.NotificationResponse;
-import com.example.javaapi.messaging.MessagingConfig;
-import com.example.javaapi.messaging.TodoCompletedEvent;
+import com.example.notificationservice.api.model.NotificationResponse;
+import com.example.notificationservice.messaging.MessagingConfig;
+import com.example.notificationservice.messaging.TodoCompletedEvent;
 
 /**
  * Turns {@code TodoCompleted} events into notifications for the todo's owner.
@@ -34,7 +34,7 @@ class TodoCompletedListener {
 		this.repository = repository;
 	}
 
-	@RabbitListener(queues = MessagingConfig.NOTIFICATION_QUEUE)
+	@RabbitListener(queues = MessagingConfig.TODO_COMPLETED_QUEUE)
 	@Transactional
 	public void onTodoCompleted(TodoCompletedEvent event, @Header(AmqpHeaders.MESSAGE_ID) String eventId) {
 		int inserted = this.repository.insertOnce(UUID.fromString(eventId), event.ownerId(),

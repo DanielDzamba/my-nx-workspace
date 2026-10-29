@@ -13,7 +13,10 @@ import { environment } from '../environments/environment';
 import { appRoutes } from './app.routes';
 import { authInterceptors, authProviders } from './auth.providers';
 import { blockedUserInterceptor } from './domains/shared/data';
-import { API_BASE_URL } from './domains/shared/util';
+import {
+  API_BASE_URL,
+  NOTIFICATIONS_API_BASE_URL,
+} from './domains/shared/util';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,6 +29,10 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([...authInterceptors, blockedUserInterceptor])
     ),
     { provide: API_BASE_URL, useValue: environment.apiUrl },
+    {
+      provide: NOTIFICATIONS_API_BASE_URL,
+      useValue: environment.notificationsApiUrl,
+    },
     ...authProviders,
   ],
 };

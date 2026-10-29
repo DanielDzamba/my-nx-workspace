@@ -1,11 +1,11 @@
-package com.example.javaapi.notification;
+package com.example.notificationservice.notification;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.javaapi.api.NotificationsApi;
-import com.example.javaapi.api.model.NotificationList;
-import com.example.javaapi.config.CurrentUser;
+import com.example.notificationservice.api.NotificationsApi;
+import com.example.notificationservice.api.model.NotificationList;
+import com.example.notificationservice.config.CurrentUser;
 
 /** Notifications of the signed-in user; they are created by {@link TodoCompletedListener}. */
 @RestController

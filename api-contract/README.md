@@ -1,8 +1,16 @@
 # api-contract
 
-The REST API of `java-api`, described in [`openapi.yaml`](openapi.yaml) (OpenAPI 3.0). It is the
-**single source of truth** for the API (design-first / API-first): backend and frontend code is
-generated from it, never the other way round.
+The REST APIs of the backend services (OpenAPI 3.0), one contract per service:
+
+| Contract                                                                 | Service                | Angular domains  |
+| ------------------------------------------------------------------------ | ---------------------- | ---------------- |
+| [`openapi.yaml`](openapi.yaml)                                           | `java-api`             | `todos`, `users` |
+| [`notification-service/openapi.yaml`](notification-service/openapi.yaml) | `notification-service` | `notifications`  |
+
+Each one is the **single source of truth** for its API (design-first / API-first): backend and
+frontend code is generated from it, never the other way round. A service owns its contract and
+changes it without touching the other service. The diagram shows `openapi.yaml`;
+`notification-service` works the same way with its own file.
 
 ```
                           api-contract/openapi.yaml
@@ -11,7 +19,7 @@ generated from it, never the other way round.
    openapi-generator-maven-plugin          ng-openapi-gen
                 |                                    |
    TodosApi, AdminApi, UsersApi,           fn/* functions + models, per domain:
-   NotificationsApi, HelloApi              apps/angular-demo/src/app/domains/<domain>/data/api
+   HelloApi                                apps/angular-demo/src/app/domains/<domain>/data/api
    + request/response DTOs                 (tags per ng-openapi-gen*.json, git-ignored)
    apps/java-api/target/generated-sources
                 |                                    |
@@ -27,9 +35,11 @@ before every compile, Nx before `build`, `serve`, `test`, `typecheck` and `lint`
 1. **Contract.** Edit `openapi.yaml`: path, `operationId` (becomes the method name on both
    sides), `tags` (`todos` → `TodosApi`), parameters, request body, every response including errors,
    and the schemas with `required` fields (otherwise they are optional in TypeScript).
-   `npx nx lint api-contract` checks the file (Redocly, `recommended-strict`).
+   `npx nx lint api-contract` checks both files (Redocly, `recommended-strict`).
 2. **Review.** The contract change can be its own PR, so backend and frontend agree on the API
-   before anyone implements it. CI fails on breaking changes against `main` (oasdiff).
+   before anyone implements it. CI fails on breaking changes against `main` (oasdiff, for each
+   contract). A breaking change the user accepted (e.g. endpoints that moved to another service) is
+   listed, one line per error, in [`oasdiff-err-ignore.txt`](oasdiff-err-ignore.txt).
 3. **Backend.** `npx nx build java-api` (or any `mvn compile`) regenerates the interface. The
    controller no longer compiles until it implements the new method; implement it there. In the IDE,
    reload the Maven project so it sees `target/generated-sources/openapi`.

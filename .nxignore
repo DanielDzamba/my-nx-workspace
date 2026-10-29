@@ -1,0 +1,2 @@
+# Git worktrees of Claude Code agents contain a full copy of the repository (duplicate projects)
+.claude/worktrees
