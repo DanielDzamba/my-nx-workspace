@@ -47,6 +47,15 @@ jobs:
           java-version: 21
           cache: maven
 
+      # `cache: maven` above keeps only ~/.m2/repository (the libraries). The Maven distribution
+      # that mvnw downloads (~/.m2/wrapper) would otherwise come from Maven Central on every run,
+      # and one failed download fails the build. The key changes with the Maven version.
+      - name: Cache Maven wrapper distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/wrapper
+          key: maven-wrapper-${{ hashFiles('apps/*/.mvn/wrapper/maven-wrapper.properties') }}
+
       # Sets NX_BASE / NX_HEAD so `nx affected` only runs projects the PR touches
       - uses: nrwl/nx-set-shas@v4
 
