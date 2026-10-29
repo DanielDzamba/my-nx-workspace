@@ -53,6 +53,8 @@ dead-letter queue): [docs/java-api/messaging.md](../../docs/java-api/messaging.m
 - `GET /api/notifications` — the signed-in user's newest 20 notifications and `unreadCount`
 - `POST /api/notifications/read-all` — marks all as read
 - `GET /actuator/health`, `/actuator/health/liveness`, `/actuator/health/readiness` (public)
+- Swagger UI: http://localhost:8081/swagger-ui.html shows the contract (served as `/openapi.yaml`),
+  like in java-api; off in production (`SPRINGDOC_SWAGGER_UI_ENABLED=false`)
 
 ## Configuration (deployed)
 

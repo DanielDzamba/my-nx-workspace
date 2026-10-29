@@ -69,4 +69,7 @@ before every compile, Nx before `build`, `serve`, `test`, `typecheck` and `lint`
   Auth0 access token (DevTools → Network → any `/api` request → `Authorization` header, without
   `Bearer `). Swagger UI is off in production (`SPRINGDOC_SWAGGER_UI_ENABLED=false` in
   `render.yaml`).
+- notification-service the same way: http://localhost:8081/swagger-ui.html (with
+  `npx nx serve notification-service`) shows `notification-service/openapi.yaml`. The same access
+  token works for both.
 - Or open `openapi.yaml` in an editor with an OpenAPI preview (e.g. the Redocly VS Code extension).

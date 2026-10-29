@@ -81,6 +81,9 @@ services:
         sync: false
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://danieldzamba.github.io
+      # Swagger UI is for development, as in java-api
+      - key: SPRINGDOC_SWAGGER_UI_ENABLED
+        value: 'false'
       # Same reasons as for java-api (512 MB RAM, a fraction of a CPU)
       - key: JAVA_TOOL_OPTIONS
         value: -XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:TieredStopAtLevel=1

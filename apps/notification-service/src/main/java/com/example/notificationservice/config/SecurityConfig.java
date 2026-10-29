@@ -34,6 +34,9 @@ public class SecurityConfig {
 				.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
 				// Spring Boot renders error responses (e.g. 400, 404) on /error
 				.requestMatchers("/error").permitAll()
+				// The API contract and Swagger UI; the API calls made from Swagger UI still need a token
+				.requestMatchers("/openapi.yaml", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/swagger-config")
+				.permitAll()
 				.requestMatchers("/api/**").authenticated()
 				.anyRequest().denyAll())
 			// Uses the CORS mappings from CorsConfig, so a preflight (OPTIONS, never has a token)
