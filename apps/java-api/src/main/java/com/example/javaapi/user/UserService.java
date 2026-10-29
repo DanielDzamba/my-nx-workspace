@@ -1,5 +1,6 @@
 package com.example.javaapi.user;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -17,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.example.javaapi.api.model.UserResponse;
+import com.example.javaapi.messaging.UserBlockedEvent;
+import com.example.javaapi.messaging.UserUnblockedEvent;
+import com.example.javaapi.outbox.Outbox;
 
 /**
  * The users who have signed in. {@link #findProfile} runs on every API request
@@ -40,8 +44,11 @@ public class UserService {
 
 	private final UserRepository repository;
 
-	UserService(UserRepository repository) {
+	private final Outbox outbox;
+
+	UserService(UserRepository repository, Outbox outbox) {
 		this.repository = repository;
+		this.outbox = outbox;
 	}
 
 	/** Empty for an unknown user; an empty result is not cached, so the user's first request creates them. */
@@ -60,6 +67,10 @@ public class UserService {
 	/**
 	 * Blocks or unblocks a user; takes effect on their next request. An admin cannot block
 	 * themselves (409), as nobody might be left to unblock them.
+	 * <p>
+	 * A change is also recorded as {@link UserBlockedEvent} / {@link UserUnblockedEvent} in the
+	 * outbox, in this transaction: notification-service keeps its own copy of the blocked status and
+	 * applies it about a second later. Setting the current value again records nothing.
 	 */
 	@Transactional
 	@CacheEvict(cacheNames = CACHE, key = "#id")
@@ -69,7 +80,15 @@ public class UserService {
 		}
 		User user = this.repository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User " + id + " not found"));
-		user.setBlocked(blocked);
+		if (user.isBlocked() != blocked) {
+			user.setBlocked(blocked);
+			if (blocked) {
+				this.outbox.record("User", id, UserBlockedEvent.TYPE, new UserBlockedEvent(id, Instant.now()));
+			}
+			else {
+				this.outbox.record("User", id, UserUnblockedEvent.TYPE, new UserUnblockedEvent(id, Instant.now()));
+			}
+		}
 		return UserMapper.toResponse(user);
 	}
 

@@ -12,6 +12,7 @@
       "cache": true,
       "inputs": [
         "{workspaceRoot}/api-contract/openapi.yaml",
+        "{workspaceRoot}/api-contract/notification-service/openapi.yaml",
         "{projectRoot}/ng-openapi-gen*.json",
         {
           "externalDependencies": ["ng-openapi-gen"]

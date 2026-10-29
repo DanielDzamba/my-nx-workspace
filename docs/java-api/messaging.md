@@ -1,36 +1,49 @@
-# Asynchronous messaging (java-api)
+# Asynchronous messaging (java-api → notification-service)
 
 Completing a todo notifies its owner. The notification is not created in the request that
-completes the todo: the request records a `TodoCompleted` event, and a consumer turns it into a
-notification a moment later. This page explains the parts and why each one exists.
+completes the todo: java-api records a `TodoCompleted` event, and notification-service, a separate
+app with its own database, turns it into a notification a moment later. This page explains the
+parts and why each one exists.
 
 ```
-PUT /api/todos/5 {completed: true}
+java-api
+  PUT /api/todos/5 {completed: true}
   TodoService.update ─┬─ UPDATE todo SET completed = true        ┐ one database
                       └─ INSERT INTO outbox_event (todo.completed) ┘ transaction
                                     │
   OutboxRelay (@Scheduled, every 1 s): SELECT ... FOR UPDATE SKIP LOCKED
                                     │  send + wait for the broker's confirm, then SET published_at
                                     ▼
-  RabbitMQ   exchange todo.events (topic) ──"todo.completed"──► queue notification.todo-completed
-                                                                   │            │ rejected
-                                                                   ▼            ▼
-  TodoCompletedListener (@RabbitListener)              todo.events.dlx ──► ...todo-completed.dlq
-    INSERT INTO notification ... ON CONFLICT (event_id) DO NOTHING
+RabbitMQ
+  exchange todo.events (topic) ──"todo.completed"──► queue notification.todo-completed
+                                                          │                  │ rejected
+                                                          │                  ▼
+                                                          │   todo.events.dlx ──► ...todo-completed.dlq
+notification-service                                      ▼
+  TodoCompletedListener (@RabbitListener)
+    INSERT INTO notification ... ON CONFLICT (event_id) DO NOTHING   (its own database)
                                     │
   GET /api/notifications  ◄── the frontend polls it (bell in the app shell)
 ```
 
-Code: `messaging/` (topology, event record), `outbox/` (`Outbox`, `OutboxRelay`),
-`notification/` (listener, REST), migration `V5`. Tests: `NotificationFlowTests` (real PostgreSQL
-and RabbitMQ via Testcontainers).
+Blocking a user travels the same way: `UserService.setBlocked` records `user.blocked` /
+`user.unblocked`, the relay publishes them to `user.events`, and notification-service keeps its own
+copy of the status (`user_status`), so it rejects a blocked user without asking java-api.
+
+Code in java-api: `messaging/` (exchanges, event records), `outbox/` (`Outbox`, `OutboxRelay`).
+Tests: `OutboxFlowTests` (real PostgreSQL and RabbitMQ via Testcontainers). The consumer side lives
+in `apps/notification-service` (`messaging/MessagingConfig` declares its queues,
+`TodoCompletedListener`, `UserStatusListener`, `NotificationFlowTests`, `UserStatusTests`).
 
 ## Why asynchronous
 
 - The request does not wait for side effects (notifications, e-mails, statistics, audit).
 - A failing consumer or broker does not fail the user's action; the work waits and is retried.
 - The producer does not know its consumers: a new one binds its own queue to `todo.events`, and
-  `TodoService` does not change (loose coupling).
+  `TodoService` does not change (loose coupling). java-api declares only the exchanges; each
+  consumer declares its own queues and dead-letter queues.
+- Services stay independent: notification-service works while java-api is down or asleep, because
+  everything it needs arrived as events earlier.
 
 The price: eventual consistency (the notification appears a moment later), more moving parts, and
 the delivery problems below.
@@ -84,7 +97,9 @@ direct send (simple, but loses the event on a crash between commit and send).
   that cannot be parsed (invalid JSON) is rejected right away, because retrying cannot fix it.
   Without this, one "poison message" would be redelivered forever and block the queue.
 - **Ordering** is not guaranteed across relay instances or retries. Consumers must not depend on
-  it (here each event is independent).
+  it. `TodoCompleted` events are independent; for `user.blocked` / `user.unblocked` the order
+  matters, so each carries `occurredAt` and notification-service keeps the newest change (an
+  older event arriving late is ignored, see `UserStatusRepository.save`).
 - **Several app instances.** `FOR UPDATE SKIP LOCKED` makes each relay lock and send different
   rows, so two instances never send the same row at the same time.
 
@@ -104,7 +119,9 @@ direct send (simple, but loses the event on a crash between commit and send).
 ## Changing an event
 
 `TodoCompletedEvent` is a contract like the REST API, just not in `openapi.yaml` (AsyncAPI is the
-equivalent spec for messages). Change it additively: new optional fields are fine; renaming or
+equivalent spec for messages). Producer and consumer share no code: each service has its own record
+for the same JSON (java-api `messaging/TodoCompletedEvent`, notification-service
+`messaging/TodoCompletedEvent`), so they can be built and deployed independently. Change it additively: new optional fields are fine; renaming or
 removing fields breaks consumers still running the old code, and messages already in the queue or
 in the outbox keep the old shape. For an incompatible change publish a new event type
 (`todo.completed.v2`) next to the old one.

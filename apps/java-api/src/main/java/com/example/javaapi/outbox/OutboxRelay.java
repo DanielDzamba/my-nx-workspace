@@ -21,7 +21,8 @@ import com.example.javaapi.messaging.MessagingConfig;
 
 /**
  * Publishes the outbox to RabbitMQ: every {@code app.outbox.relay-interval} it takes the oldest
- * unpublished events, sends them, waits until the broker confirms it has stored them (publisher
+ * unpublished events, sends them to the exchange of their aggregate type
+ * ({@link MessagingConfig#exchangeFor}), waits until the broker confirms it has stored them (publisher
  * confirms) and only then marks them as published, in one transaction.
  * <p>
  * Delivery is <b>at least once</b>: if the app dies after the broker confirmed but before the
@@ -57,7 +58,7 @@ class OutboxRelay {
 	@Transactional
 	public void publishPending() {
 		List<PendingEvent> events = this.jdbc.sql("""
-				SELECT id, event_type, payload::text AS payload
+				SELECT id, aggregate_type, event_type, payload::text AS payload
 				FROM outbox_event
 				WHERE published_at IS NULL
 				ORDER BY created_at
@@ -70,8 +71,8 @@ class OutboxRelay {
 		try {
 			// invoke: all sends and the confirm wait run on one channel
 			this.rabbitTemplate.invoke((operations) -> {
-				events.forEach((event) -> operations.send(MessagingConfig.TODO_EVENTS_EXCHANGE, event.eventType(),
-						toMessage(event)));
+				events.forEach((event) -> operations.send(MessagingConfig.exchangeFor(event.aggregateType()),
+						event.eventType(), toMessage(event)));
 				operations.waitForConfirmsOrDie(CONFIRM_TIMEOUT.toMillis());
 				return null;
 			});
@@ -106,7 +107,7 @@ class OutboxRelay {
 			.build();
 	}
 
-	record PendingEvent(UUID id, String eventType, String payload) {
+	record PendingEvent(UUID id, String aggregateType, String eventType, String payload) {
 	}
 
 }

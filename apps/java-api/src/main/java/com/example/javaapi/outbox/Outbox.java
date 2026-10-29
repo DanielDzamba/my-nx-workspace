@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.javaapi.messaging.MessagingConfig;
+
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -32,7 +34,8 @@ public class Outbox {
 	 * Adds an event to the caller's transaction. {@code MANDATORY}: without a transaction the event
 	 * would be committed on its own, and the outbox would guarantee nothing, so that fails fast.
 	 *
-	 * @param aggregateType what the event is about, e.g. {@code Todo}
+	 * @param aggregateType what the event is about, e.g. {@code Todo}; selects the exchange
+	 * ({@link MessagingConfig#exchangeFor}), so an unknown type fails here instead of in the relay
 	 * @param aggregateId the ID of that entity
 	 * @param eventType the routing key, e.g. {@code todo.completed}
 	 * @param payload serialized to JSON as the message body
@@ -40,6 +43,7 @@ public class Outbox {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public UUID record(String aggregateType, Object aggregateId, String eventType, Object payload) {
+		MessagingConfig.exchangeFor(aggregateType);
 		UUID id = UUID.randomUUID();
 		this.jdbc.sql("""
 				INSERT INTO outbox_event (id, aggregate_type, aggregate_id, event_type, payload)

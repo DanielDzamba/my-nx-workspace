@@ -1,4 +1,4 @@
-# Render Blueprint (https://render.com/docs/blueprint-spec) for java-api.
+# Render Blueprint (https://render.com/docs/blueprint-spec) for java-api and notification-service.
 # The frontend is on GitHub Pages (.github/workflows/deploy-pages.yml), the database on Neon,
 # RabbitMQ on CloudAMQP; the Redis cache is the Key Value service below.
 # Paths are relative to the repository root.
@@ -48,6 +48,40 @@ services:
         value: 'false'
       # Free plan has 512 MB RAM and a fraction of a CPU: leave room for metaspace and threads,
       # use the single-threaded GC and trade peak performance for a faster startup
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+
+  # In-app notifications, fed by java-api's events through CloudAMQP. Its own Neon database (same
+  # Neon project, database `notifications`): it never reads java-api's database.
+  - type: web
+    # https://danieldzamba-notification-service.onrender.com (notificationsApiUrl in environment.ts)
+    name: danieldzamba-notification-service
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./apps/notification-service/Dockerfile
+    dockerContext: .
+    buildFilter:
+      paths:
+        - apps/notification-service/**
+        - api-contract/notification-service/**
+    healthCheckPath: /actuator/health/readiness
+    autoDeployTrigger: checksPass
+    envVars:
+      # Neon connection to the `notifications` database, entered in the Render dashboard:
+      # jdbc:postgresql://<host>.neon.tech/notifications?sslmode=require
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      # The same CloudAMQP instance as java-api
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: APP_CORS_ALLOWED_ORIGINS
+        value: https://danieldzamba.github.io
+      # Same reasons as for java-api (512 MB RAM, a fraction of a CPU)
       - key: JAVA_TOOL_OPTIONS
         value: -XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:TieredStopAtLevel=1
 

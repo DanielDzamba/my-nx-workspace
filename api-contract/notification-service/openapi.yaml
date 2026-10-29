@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: Notification API
+  version: 1.0.0
+  description: |
+    REST API of `notification-service`, consumed by `angular-demo`.
+
+    Design-first like the todo API (`api-contract/openapi.yaml`): the Spring interfaces and DTOs
+    of the service and the Angular functions and models of the frontend are generated from this
+    file. Change the API here first, then implement it. See `api-contract/README.md`.
+
+    Notifications are created asynchronously from events of `java-api` (RabbitMQ): completing a
+    todo publishes a `TodoCompleted` event and this service stores the notification, so a new one
+    appears a moment after the request that caused it.
+
+    Every request needs the same Auth0 access token as the todo API (`Authorization: Bearer <JWT>`).
+    A user blocked by an admin gets `403` with the problem type
+    `https://todo-api/problems/user-blocked` (the service learns about blocking from `UserBlocked`
+    events). Errors with a body are [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457).
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  # Relative: the frontend sets its own root URL (NOTIFICATIONS_API_BASE_URL). The paths contain `/api`.
+  - url: /
+    description: Same origin as this document
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: notifications
+    description: In-app notifications of the signed-in user.
+
+paths:
+  /api/notifications:
+    get:
+      tags: [notifications]
+      operationId: listNotifications
+      summary: The newest notifications of the signed-in user
+      description: At most 20, newest first, with the number of all unread ones.
+      responses:
+        '200':
+          description: The notifications.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/notifications/read-all:
+    post:
+      tags: [notifications]
+      operationId: markAllNotificationsRead
+      summary: Mark all notifications of the signed-in user as read
+      responses:
+        '204':
+          description: Marked as read.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Auth0 access token for the audience `https://todo-api`.
+
+  responses:
+    Unauthorized:
+      description: Missing, expired or invalid access token.
+    Forbidden:
+      description: The user is blocked (type `https://todo-api/problems/user-blocked`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+  schemas:
+    NotificationResponse:
+      type: object
+      required: [id, type, todoId, todoTitle, createdAt, read]
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          description: What happened. New types may be added, so clients must ignore unknown ones.
+          enum: [TODO_COMPLETED]
+        todoId:
+          type: integer
+          format: int64
+          description: The todo may have been deleted since.
+        todoTitle:
+          type: string
+          description: Title of the todo when the event happened.
+        createdAt:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+
+    NotificationList:
+      type: object
+      required: [items, unreadCount]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        unreadCount:
+          type: integer
+          format: int64
+          description: All unread notifications, also those not in `items`.
+
+    ProblemDetail:
+      type: object
+      description: RFC 9457 error body.
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri

@@ -1,20 +1,21 @@
 ---
 name: runapp
-description: Launch the whole stack of this Nx workspace — PostgreSQL in Docker (port 5432), the java-api Spring Boot backend (port 8080) and the angular-demo Angular frontend (port 4200) — and smoke-test it. Use when asked to run, start or stop "the app(s)", both apps, the full stack, frontend and backend together, or on /runapp.
+description: Launch the whole stack of this Nx workspace — PostgreSQL, RabbitMQ and Redis in Docker, the java-api Spring Boot backend (port 8080), notification-service (port 8081) and the angular-demo Angular frontend (port 4200) — and smoke-test it. Use when asked to run, start or stop "the app(s)", both apps, the full stack, frontend and backend together, or on /runapp.
 ---
 
-# Run PostgreSQL + java-api + angular-demo
+# Run the infrastructure + java-api + notification-service + angular-demo
 
 Local development follows the "infrastructure in Docker, apps native" pattern:
-only the database runs in a container, and both apps run natively for fast reloads and debugging.
+PostgreSQL, RabbitMQ and Redis run in containers, the apps run natively for fast reloads and debugging.
 
-| Part                              | Path                         | Command                       | URL                                           |
-| --------------------------------- | ---------------------------- | ----------------------------- | --------------------------------------------- |
-| PostgreSQL 17 (Docker)            | `apps/java-api/compose.yaml` | `docker compose up -d --wait` | `localhost:5432`, db/user/password `java_api` |
-| java-api (Spring Boot, Java 21)   | `apps/java-api`              | `npx nx serve java-api`       | http://localhost:8080                         |
-| angular-demo (Angular dev server) | `apps/angular-demo`          | `npx nx serve angular-demo`   | http://localhost:4200                         |
+| Part                               | Path                         | Command                             | URL                                                                                               |
+| ---------------------------------- | ---------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Infrastructure (Docker)            | `apps/java-api/compose.yaml` | `docker compose up -d --wait`       | PostgreSQL 5432 (`java_api`), 5433 (`notification_service`), RabbitMQ 5672 / UI 15672, Redis 6379 |
+| java-api (Spring Boot, Java 21)    | `apps/java-api`              | `npx nx serve java-api`             | http://localhost:8080                                                                             |
+| notification-service (Spring Boot) | `apps/notification-service`  | `npx nx serve notification-service` | http://localhost:8081                                                                             |
+| angular-demo (Angular dev server)  | `apps/angular-demo`          | `npx nx serve angular-demo`         | http://localhost:4200                                                                             |
 
-The Angular dev server proxies `/api/**` to `http://localhost:8080` (`apps/angular-demo/proxy.conf.json`).
+The Angular dev server proxies `/api/notifications/**` to `http://localhost:8081` and the rest of `/api/**` to `http://localhost:8080` (`apps/angular-demo/proxy.conf.json`).
 The frontend therefore calls relative `/api/...` URLs and needs no CORS locally.
 Details for the backend alone (targets, devtools restarts, troubleshooting) are in the `run-java-api` skill.
 
@@ -24,7 +25,7 @@ Details for the backend alone (targets, devtools restarts, troubleshooting) are 
   Without Docker, java-api fails at startup because it has no database.
 - JDK 21 on `PATH` (`java -version` prints 21.x).
 - `node_modules` installed at the repo root (`npm install`).
-- Ports 5432, 8080 and 4200 free. Check on Windows with `netstat -ano | findstr ":5432 :8080 :4200"`.
+- Ports 5432, 5433, 5672, 6379, 8080, 8081 and 4200 free. Check on Windows with `netstat -ano | findstr ":5432 :8080 :8081 :4200"`.
   A locally installed PostgreSQL service often holds 5432.
   If a port is taken, find out whether it is an earlier instance of this stack before killing anything.
 
@@ -35,12 +36,12 @@ docker compose -f apps/java-api/compose.yaml up -d --wait
 docker compose -f apps/java-api/compose.yaml ps
 ```
 
-`--wait` returns once the `pg_isready` healthcheck passes; `ps` should show `postgres` as `healthy`.
+`--wait` returns once all healthchecks pass; `ps` should show `postgres`, `notification-postgres`, `rabbitmq` and `redis` as `healthy`.
 java-api would also start this container by itself (`spring-boot-docker-compose`).
 Starting it explicitly first keeps database errors out of the Java log.
 Data persists in the `java-api_postgres-data` volume across restarts.
 
-## 2. Start both servers (background)
+## 2. Start the servers (background)
 
 Run from the repo root. Start each as its own background task, with output to a log file in the session scratchpad directory:
 
@@ -49,10 +50,14 @@ npx nx serve java-api > "$SCRATCH/java-api.log" 2>&1
 ```
 
 ```bash
+npx nx serve notification-service > "$SCRATCH/notification-service.log" 2>&1
+```
+
+```bash
 npx nx serve angular-demo > "$SCRATCH/angular-demo.log" 2>&1
 ```
 
-Neither command exits while its server is up. Do not combine them into one `nx run-many` call: separate logs make failures easy to attribute.
+No command exits while its server is up. Do not combine them into one `nx run-many` call: separate logs make failures easy to attribute.
 
 ## 3. Wait for startup
 
@@ -65,6 +70,12 @@ for i in $(seq 1 240); do
   sleep 1
 done
 grep -E "Started|Tomcat started|Flyway|Schema|FAILED|FAILURE|ERROR" "$SCRATCH/java-api.log" | tail -20
+
+for i in $(seq 1 240); do
+  grep -qE "Started .* in|APPLICATION FAILED|BUILD FAILURE" "$SCRATCH/notification-service.log" 2>/dev/null && break
+  sleep 1
+done
+grep -E "Started|Tomcat started|Flyway|FAILED|FAILURE|ERROR" "$SCRATCH/notification-service.log" | tail -20
 
 for i in $(seq 1 120); do
   grep -qE "Application bundle generation (complete|failed)|\[ERROR\]" "$SCRATCH/angular-demo.log" 2>/dev/null && break
@@ -87,6 +98,8 @@ Success looks like:
 ```bash
 curl -s -w "\nHTTP %{http_code}\n" http://localhost:8080/api/hello
 curl -s -w "\nHTTP %{http_code}\n" http://localhost:8080/actuator/health
+curl -s -w "\nHTTP %{http_code}\n" http://localhost:8081/actuator/health
+curl -s -o /dev/null -w "notifications via proxy HTTP %{http_code}\n" http://localhost:4200/api/notifications
 curl -s -o /dev/null -w "angular-demo HTTP %{http_code}\n" http://localhost:4200/
 curl -s -w "\nHTTP %{http_code}\n" http://localhost:4200/api/hello
 ```
@@ -97,6 +110,7 @@ Expected:
 - `/actuator/health` → JSON with `"status":"UP"`, HTTP 200. The database is part of this check: if PostgreSQL is down, it reports `DOWN` / HTTP 503.
 - `http://localhost:4200/` → HTTP 200 (the HTML shell containing `<app-root>`).
 - `http://localhost:4200/api/hello` → the same JSON as on port 8080, which proves the dev-server proxy works.
+- `http://localhost:8081/actuator/health` → `"status":"UP"`; `http://localhost:4200/api/notifications` → HTTP 401 (no token), which proves the proxy reaches notification-service.
 
 If the change under test touches a controller or a component, hit that route too and read the response.
 To look into the database: `docker compose -f apps/java-api/compose.yaml exec postgres psql -U java_api -d java_api -c '\dt'`.
@@ -107,11 +121,11 @@ Tell the user the URLs and the smoke-test results. Leave the servers and the dat
 
 ## 6. Stop
 
-Stop both background tasks. If a process outlives its task and keeps a port:
+Stop the background tasks. If a process outlives its task and keeps a port:
 
 - Windows (PowerShell):
-  `Get-NetTCPConnection -LocalPort 8080,4200 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
-- Unix: `kill $(lsof -t -i:8080 -i:4200)`
+  `Get-NetTCPConnection -LocalPort 8080,8081,4200 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
+- Unix: `kill $(lsof -t -i:8080 -i:8081 -i:4200)`
 
 The database keeps running on purpose (`spring.docker.compose.lifecycle-management=start-only`). Stop it only when asked:
 

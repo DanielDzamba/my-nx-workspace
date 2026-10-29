@@ -7,7 +7,11 @@ import {
 } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { AuthClient, AuthUser } from '../../shared/data';
-import { API_BASE_URL, ROUTE_PATHS, ROUTE_URLS } from '../../shared/util';
+import {
+  NOTIFICATIONS_API_BASE_URL,
+  ROUTE_PATHS,
+  ROUTE_URLS,
+} from '../../shared/util';
 import {
   NOTIFICATION_POLL_INTERVAL,
   NOTIFICATION_TYPES,
@@ -15,7 +19,7 @@ import {
 } from '../data';
 import { NotificationWidget } from './notification-widget';
 
-const LIST_URL = 'https://api.test/api/notifications';
+const LIST_URL = 'https://notifications.test/api/notifications';
 
 const milk: Notification = {
   id: 1,
@@ -49,7 +53,10 @@ describe('NotificationWidget', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AuthClient, useValue: client },
-        { provide: API_BASE_URL, useValue: 'https://api.test' },
+        {
+          provide: NOTIFICATIONS_API_BASE_URL,
+          useValue: 'https://notifications.test',
+        },
         // Only the first poll and explicit reloads happen during a test
         { provide: NOTIFICATION_POLL_INTERVAL, useValue: 60_000 },
       ],

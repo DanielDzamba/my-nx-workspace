@@ -1,7 +1,8 @@
-# Local development infrastructure for java-api.
+# Local development infrastructure for java-api and notification-service.
 #
-# `npx nx serve java-api` starts the postgres service automatically (spring-boot-docker-compose),
-# so you rarely need to run this by hand. Useful commands, from apps/java-api:
+# `npx nx serve java-api` starts it automatically (spring-boot-docker-compose), and
+# `npx nx serve notification-service` starts notification-postgres and rabbitmq, so you rarely need
+# to run this by hand. Useful commands, from apps/java-api:
 #   docker compose up -d --wait          # start PostgreSQL, RabbitMQ and Redis
 #   docker compose --profile full up --build   # PostgreSQL + the API as a container
 #   docker compose down                  # stop (data is kept in the volume)
@@ -27,7 +28,30 @@ services:
       timeout: 5s
       retries: 10
 
-  # Message broker for the TodoCompleted events. Management UI: http://localhost:15672
+  # Database of notification-service: its own container, as each service owns its database.
+  # Port 5433, so it does not clash with java-api's on 5432.
+  notification-postgres:
+    image: postgres:17-alpine
+    labels:
+      # Not a connection for java-api: spring-boot-docker-compose would otherwise see two databases
+      org.springframework.boot.ignore: 'true'
+    environment:
+      # Development-only credentials (application-local.properties of notification-service)
+      POSTGRES_DB: notification_service
+      POSTGRES_USER: notification_service
+      POSTGRES_PASSWORD: notification_service
+    ports:
+      - '127.0.0.1:5433:5432'
+    volumes:
+      - notification-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Message broker for the TodoCompleted and UserBlocked/UserUnblocked events.
+  # Management UI: http://localhost:15672
   # (login java_api / java_api): exchanges, queues, the dead-letter queue and message rates.
   rabbitmq:
     image: rabbitmq:4-management-alpine
@@ -82,4 +106,5 @@ services:
 
 volumes:
   postgres-data:
+  notification-postgres-data:
   rabbitmq-data:

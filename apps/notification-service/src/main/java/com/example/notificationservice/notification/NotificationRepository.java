@@ -1,4 +1,4 @@
-package com.example.javaapi.notification;
+package com.example.notificationservice.notification;
 
 import java.util.List;
 import java.util.UUID;

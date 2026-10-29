@@ -8,7 +8,10 @@ import { provideAuth0 } from './domains/shared/data';
 // Playwright tests run without Auth0.
 
 export const authProviders: EnvironmentProviders[] = [
-  provideAuth0({ ...environment.auth0, apiUrl: environment.apiUrl }),
+  provideAuth0({
+    ...environment.auth0,
+    apiUrls: [environment.apiUrl, environment.notificationsApiUrl],
+  }),
 ];
 
 /** Adds `Authorization: Bearer <access token>` to requests matching `secureRoutes`. */

@@ -1,12 +1,12 @@
-package com.example.javaapi.notification;
+package com.example.notificationservice.notification;
 
 import java.time.ZoneOffset;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.javaapi.api.model.NotificationList;
-import com.example.javaapi.api.model.NotificationResponse;
+import com.example.notificationservice.api.model.NotificationList;
+import com.example.notificationservice.api.model.NotificationResponse;
 
 /** Notifications of one recipient (the signed-in user). */
 @Service
