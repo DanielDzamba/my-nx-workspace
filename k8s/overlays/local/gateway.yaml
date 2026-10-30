@@ -1,0 +1,64 @@
+# The entry point into the local cluster: Envoy Gateway (installed by `npx nx run k8s:cluster`)
+# implements the Gateway API. On GKE, overlays/prod uses Google's own GatewayClass instead; the
+# HTTPRoute in base stays the same.
+#
+# GatewayClass: which implementation runs the Gateways of this class (cluster-wide, like a
+# StorageClass). parametersRef points to the Envoy-specific settings below.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: kind-nodeport
+    namespace: todo
+---
+# Envoy would ask for a cloud LoadBalancer, which kind does not have. A NodePort with a fixed port
+# instead: kind-config.yaml maps node port 30080 to http://localhost:8088.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: kind-nodeport
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 1
+        container:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      envoyService:
+        type: NodePort
+        # Envoy Gateway defaults to Local: a node then only accepts outside traffic when an Envoy
+        # pod runs on it. The port mapping is on the control-plane node, Envoy on a worker, so
+        # Cluster lets any node forward to it (the client IP is lost, which is fine locally).
+        externalTrafficPolicy: Cluster
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - port: 80
+                  nodePort: 30080
+---
+# The Gateway: one HTTP listener on port 80. Envoy Gateway starts an Envoy proxy for it; routes in
+# the same namespace (base/api-route.yaml) attach to it by name.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: api-gateway
+spec:
+  gatewayClassName: envoy
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same

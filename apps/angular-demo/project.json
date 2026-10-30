@@ -125,6 +125,10 @@
         "development": {
           "buildTarget": "angular-demo:build:development"
         },
+        "k8s": {
+          "buildTarget": "angular-demo:build:development",
+          "proxyConfig": "apps/angular-demo/proxy.k8s.json"
+        },
         "e2e": {
           "buildTarget": "angular-demo:build:e2e",
           "port": 4300

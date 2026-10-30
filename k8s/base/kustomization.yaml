@@ -1,0 +1,8 @@
+# Manifests shared by all environments. Not deployable on its own: an overlay adds the image tags,
+# the config and secrets, the Gateway and (locally) the infrastructure. See k8s/README.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - java-api.yaml
+  - notification-service.yaml
+  - api-route.yaml

@@ -1,0 +1,131 @@
+# Two PostgreSQL databases, one per service (database per service, as in production on Neon).
+# Local only: on GKE the services use Neon instead.
+#
+# StatefulSet instead of Deployment: a database pod keeps its name (java-api-postgres-0) and its
+# own volume across restarts; volumeClaimTemplates gives each pod a PersistentVolumeClaim, which
+# kind's default StorageClass fills with a directory on the node.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: java-api-postgres
+spec:
+  serviceName: java-api-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: java-api-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: java-api-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: java-api-postgres
+          env:
+            # A subdirectory: initdb refuses a mount point that is not empty
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command:
+                ['sh', '-c', 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# Headless (no virtual IP): the name resolves straight to the pod, as a StatefulSet expects
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-api-postgres
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: java-api-postgres
+  ports:
+    - name: postgres
+      port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: notification-postgres
+spec:
+  serviceName: notification-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notification-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: notification-postgres
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command:
+                ['sh', '-c', 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-postgres
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: notification-postgres
+  ports:
+    - name: postgres
+      port: 5432

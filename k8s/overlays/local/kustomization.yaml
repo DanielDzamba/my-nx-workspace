@@ -1,0 +1,62 @@
+# Local overlay: base + infrastructure in the cluster + Envoy Gateway + development credentials.
+# Deploy with `npx nx run k8s:deploy` (= kubectl apply -k k8s/overlays/local); see k8s/README.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: todo
+resources:
+  - namespace.yaml
+  - ../../base
+  - gateway.yaml
+  - infra/postgres.yaml
+  - infra/rabbitmq.yaml
+  - infra/redis.yaml
+
+# Images built from the repository and loaded into kind (`npx nx run k8s:images`), never pulled.
+# A new build keeps the tag, so `kubectl rollout restart` picks it up (k8s/README.md).
+images:
+  - name: java-api
+    newTag: local
+  - name: notification-service
+    newTag: local
+
+# Generated with a hash in the name (java-api-config-7g2k...), and the Deployments are rewritten
+# to that name. Changing a value therefore creates a new ConfigMap and rolls the pods, instead of
+# leaving running pods with the old environment.
+configMapGenerator:
+  - name: java-api-config
+    literals:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://java-api-postgres:5432/java_api
+      - SPRING_DATA_REDIS_URL=redis://redis:6379
+      - APP_CORS_ALLOWED_ORIGINS=http://localhost:4200
+  - name: notification-service-config
+    literals:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-postgres:5432/notification_service
+      - APP_CORS_ALLOWED_ORIGINS=http://localhost:4200
+
+# Development-only credentials, the same as in apps/java-api/compose.yaml. On GKE the secrets are
+# created outside of Git (k8s/README.md), never committed.
+secretGenerator:
+  - name: java-api-secrets
+    literals:
+      - SPRING_DATASOURCE_USERNAME=java_api
+      - SPRING_DATASOURCE_PASSWORD=java_api
+      - SPRING_RABBITMQ_ADDRESSES=amqp://java_api:java_api@rabbitmq:5672
+  - name: notification-service-secrets
+    literals:
+      - SPRING_DATASOURCE_USERNAME=notification_service
+      - SPRING_DATASOURCE_PASSWORD=notification_service
+      - SPRING_RABBITMQ_ADDRESSES=amqp://java_api:java_api@rabbitmq:5672
+  - name: java-api-postgres
+    literals:
+      - POSTGRES_DB=java_api
+      - POSTGRES_USER=java_api
+      - POSTGRES_PASSWORD=java_api
+  - name: notification-postgres
+    literals:
+      - POSTGRES_DB=notification_service
+      - POSTGRES_USER=notification_service
+      - POSTGRES_PASSWORD=notification_service
+  - name: rabbitmq
+    literals:
+      - RABBITMQ_DEFAULT_USER=java_api
+      - RABBITMQ_DEFAULT_PASS=java_api
