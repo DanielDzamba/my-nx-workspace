@@ -113,10 +113,11 @@ for i in $(seq 1 400); do curl -s -o /dev/null -w "%{http_code}\n" http://localh
    replacement at once; the Service only routes to it once it is ready.
 2. **Rolling update without downtime.** Start the load loop, then
    `kubectl -n todo rollout restart deployment/java-api`. Expected: only `401`.
-   Now break it: remove readiness probe and preStop, then restart again under load, and look for
-   `502`/`503`:
+   Now break it: remove all three probes and the preStop sleep (the patch itself rolls the pods),
+   with the load loop running, and look for `503`. Removing only the readiness probe is not
+   enough: until the startup probe has passed, a pod is not ready either.
    ```sh
-   kubectl -n todo patch deployment java-api --type=json -p '[{"op":"remove","path":"/spec/template/spec/containers/0/readinessProbe"},{"op":"remove","path":"/spec/template/spec/containers/0/lifecycle"}]'
+   kubectl -n todo patch deployment java-api --type=json -p '[{"op":"remove","path":"/spec/template/spec/containers/0/startupProbe"},{"op":"remove","path":"/spec/template/spec/containers/0/livenessProbe"},{"op":"remove","path":"/spec/template/spec/containers/0/readinessProbe"},{"op":"remove","path":"/spec/template/spec/containers/0/lifecycle"}]'
    ```
    `npx nx run k8s:deploy` restores the manifest.
 3. **Scaling and scheduling.** `kubectl -n todo scale deployment/java-api --replicas=6`: some pods
