@@ -11,6 +11,9 @@ resources:
   - infra/rabbitmq.yaml
   - infra/redis.yaml
 
+patches:
+  - path: wait-for-database.yaml
+
 # Images built from the repository and loaded into kind (`npx nx run k8s:images`), never pulled.
 # A new build keeps the tag, so `kubectl rollout restart` picks it up (k8s/README.md).
 images:

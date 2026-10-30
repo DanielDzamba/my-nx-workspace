@@ -13,6 +13,7 @@ k8s/
   overlays/local/         kind: base + infrastructure + Envoy Gateway + development credentials
     infra/                  PostgreSQL ×2 and RabbitMQ (StatefulSets), Redis (Deployment)
     gateway.yaml            GatewayClass/Gateway (Envoy Gateway), NodePort 30080 → localhost:8088
+    wait-for-database.yaml  init containers: the apps start only once their PostgreSQL answers
 ```
 
 ```
