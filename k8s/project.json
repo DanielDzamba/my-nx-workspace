@@ -1,0 +1,45 @@
+{
+  "name": "k8s",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "k8s",
+  "tags": ["type:deploy"],
+  "implicitDependencies": ["java-api", "notification-service"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/**/*.yaml",
+        "{workspaceRoot}/tools/scripts/k8s-local.mjs"
+      ],
+      "options": {
+        "command": "node tools/scripts/k8s-local.mjs lint"
+      }
+    },
+    "cluster": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/k8s-local.mjs cluster"
+      }
+    },
+    "images": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/k8s-local.mjs images"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/k8s-local.mjs deploy"
+      }
+    },
+    "down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/k8s-local.mjs down"
+      }
+    }
+  }
+}

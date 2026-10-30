@@ -1,0 +1,18 @@
+# Local Kubernetes cluster for the experiments in k8s/README.md (kind = Kubernetes in Docker: every
+# node is a Docker container). `npx nx run k8s:cluster` creates it, `npx nx run k8s:down` deletes it.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: todo
+nodes:
+  # Runs the Kubernetes control plane (API server, scheduler, etcd); no app pods
+  - role: control-plane
+    # The Gateway's NodePort 30080 (overlays/local/gateway.yaml) is reachable on the host as
+    # http://localhost:8088, only from this machine
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8088
+        listenAddress: 127.0.0.1
+        protocol: TCP
+  # Two nodes for the app pods, so replicas spread over machines and a node can be "lost"
+  - role: worker
+  - role: worker

@@ -1,0 +1,39 @@
+# Kubernetes starts everything at once and has no `depends_on` like Compose. Without this, a fresh
+# `deploy` starts the apps before their PostgreSQL is ready: Flyway fails, the pod restarts with a
+# growing back-off (CrashLoopBackOff) until the database is up. An init container runs to
+# completion before the app container starts, so the app only starts once its database answers.
+#
+# Local only: on GKE the databases (Neon) are outside the cluster and up before any deploy. It only
+# covers the start; an outage later is handled by the app and its readiness probe (README, exp. 4).
+# postgres:17-alpine because it is already on the nodes and brings pg_isready; -U because uid 10001
+# has no user name in that image (pg_isready would not even try). It only asks "accepting
+# connections?", so any user name works.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-api
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: postgres:17-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h java-api-postgres -p 5432 -U postgres; do sleep 2; done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-database
+          image: postgres:17-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h notification-postgres -p 5432 -U postgres; do sleep 2; done

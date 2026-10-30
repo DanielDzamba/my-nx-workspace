@@ -9,12 +9,14 @@ Nx monorepo with a frontend and two backend services:
 | `notification-service` | `apps/notification-service` | Spring Boot 4 / Java 21, own PostgreSQL, consumes RabbitMQ  |
 | `mylib`                | `mylib`                     | Angular UI library, imported as `@mylib`                    |
 | `api-contract`         | `api-contract`              | OpenAPI 3.0 contracts of both REST APIs (design-first)      |
+| `k8s`                  | `k8s`                       | Kubernetes manifests (Kustomize), local cluster with kind   |
 
 The services share no code and no database; they talk only through events (RabbitMQ,
 `docs/java-api/messaging.md`).
 
 Run tasks through Nx: `npx nx <target> <project>` (`lint`, `test`, `build`, `serve`).
 Skills in `.claude/skills` cover running the stack (`runapp`, `run-java-api`) and PRs (`pr`).
+The stack on local Kubernetes (`npx nx run k8s:cluster|images|deploy`): `k8s/README.md`.
 
 ## API contract: red lines
 

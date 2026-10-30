@@ -1,0 +1,28 @@
+# Gateway API (the successor of Ingress): which requests arriving at the Gateway `api-gateway` go
+# to which Service. The Gateway itself (implementation, port, TLS) is environment-specific and
+# lives in the overlay; this routing is the same everywhere.
+#
+# The most specific match wins, whatever the order: /api/notifications/... goes to
+# notification-service, every other /api/... to java-api. The paths are not rewritten.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api
+spec:
+  parentRefs:
+    - name: api-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/notifications
+      backendRefs:
+        - name: notification-service
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: java-api
+          port: 80

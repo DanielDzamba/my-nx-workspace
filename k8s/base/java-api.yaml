@@ -1,0 +1,121 @@
+# java-api: the same manifest for every environment. What differs (image tag, database and broker
+# addresses, credentials) comes from the overlay: overlays/<env> sets the image and generates the
+# ConfigMap java-api-config and the Secret java-api-secrets.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-api
+  labels:
+    app.kubernetes.io/name: java-api
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  # Rolling update: start one new pod, wait until it is ready, then stop one old pod, and so on.
+  # maxUnavailable 0 = never fewer ready pods than replicas during a deploy.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: java-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: java-api
+    spec:
+      # Spread the replicas over the nodes, so losing one node does not take all of them down
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: java-api
+      securityContext:
+        # The image runs as user `spring` (uid 10001, see the Dockerfile); numeric, so Kubernetes
+        # can check it is not root
+        runAsNonRoot: true
+        runAsUser: 10001
+      # SIGTERM → preStop (5 s) → Spring graceful shutdown (max 20 s) must fit into these 30 s,
+      # otherwise Kubernetes kills the JVM with SIGKILL in the middle of a request
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: java-api
+          image: java-api
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: java-api-config
+            - secretRef:
+                name: java-api-secrets
+          env:
+            # Graceful shutdown (default in Spring Boot): finish running requests, at most this long
+            - name: SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE
+              value: 20s
+            # Heap 60 % of the memory limit; the rest is metaspace, threads and buffers
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+          resources:
+            # Memory request = limit: the pod gets what it may use, so the node is never
+            # overbooked. No CPU limit: it would throttle the JVM (startup, GC) although the node
+            # has CPU to spare; the request still reserves a share.
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 512Mi
+          # Until the app has started, only this probe runs (up to 3 minutes): a slow JVM start is
+          # not mistaken for a hung app
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 36
+          # "Is the process stuck?" → restart the container. Never checks the database or the
+          # broker: their outage is not fixed by restarting this app (k8s/README.md, experiment 4).
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 10
+            # A slow answer is not a stuck process: generous, or a busy pod gets killed (exit 137)
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # "May I send you requests?" → while it fails, the pod gets no traffic but keeps running.
+          # Spring reports "refusing traffic" during startup and as soon as it shuts down.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            # SIGTERM and "remove this pod from the Service" happen at the same time, and the
+            # routers learn about the removal a moment later. Waiting 5 s before Spring stops
+            # accepting requests lets those last requests still be answered.
+            preStop:
+              sleep:
+                seconds: 5
+---
+# Stable name and virtual IP for the pods above (DNS: java-api, or java-api.<namespace>.svc).
+# Only ready pods are behind it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-api
+  labels:
+    app.kubernetes.io/name: java-api
+spec:
+  selector:
+    app.kubernetes.io/name: java-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

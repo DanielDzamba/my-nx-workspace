@@ -1,0 +1,5 @@
+# Everything of the app lives in this namespace; `kubectl delete namespace todo` removes all of it
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: todo
