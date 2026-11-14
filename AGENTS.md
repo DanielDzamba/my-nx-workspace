@@ -10,6 +10,7 @@ Nx monorepo with a frontend and two backend services:
 | `mylib`                | `mylib`                     | Angular UI library, imported as `@mylib`                    |
 | `api-contract`         | `api-contract`              | OpenAPI 3.0 contracts of both REST APIs (design-first)      |
 | `k8s`                  | `k8s`                       | Kubernetes manifests (Kustomize), local cluster with kind   |
+| –                      | `infra/terraform/gke`       | Terraform: GKE cluster, Spot node pool, Artifact Registry   |
 
 The services share no code and no database; they talk only through events (RabbitMQ,
 `docs/java-api/messaging.md`).
