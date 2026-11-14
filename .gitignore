@@ -49,3 +49,10 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 # Generated from api-contract/openapi.yaml on every build (nx generate-api angular-demo)
 apps/angular-demo/src/app/domains/*/data/api
+
+# Terraform (state is remote in GCS; the provider lock file .terraform.lock.hcl is committed)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
