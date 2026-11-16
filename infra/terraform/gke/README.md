@@ -68,8 +68,16 @@ Never change these resources in the console: the next `apply` reverts the change
 2. `.github/workflows/terraform-plan.yml` runs `terraform plan` as the read-only `github-plan@`
    (Workload Identity Federation, no key) and posts the plan as a PR comment; review it for `-` and
    `-/+`.
-3. After the merge, apply by hand from `main` (`terraform apply`). Apply is not automated: it needs
-   owner-like rights, which no CI identity has.
+3. Merge. `.github/workflows/terraform-apply.yml` plans again on `main` (job summary) and, if there
+   are changes, starts the apply job in the GitHub environment `infrastructure`. It waits for the
+   required reviewer (Approve in the Actions run), then applies as `github-apply@`.
+
+`github-apply@` has owner rights, so two locks guard it: Google lets only jobs of the environment
+`infrastructure` use it (token subject `repo:<repo>:environment:infrastructure`), and GitHub runs
+that environment only for `main` and only after an approval (Settings → Environments).
+
+`terraform apply` from a laptop is left for bootstrapping (the state bucket, and `github-apply@`
+itself, which cannot create itself) and for emergencies when GitHub is down.
 
 ## Cost
 

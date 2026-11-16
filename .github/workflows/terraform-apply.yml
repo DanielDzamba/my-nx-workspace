@@ -1,0 +1,97 @@
+# terraform apply after a merge to main, behind a manual approval.
+#   1. plan   (read-only github-plan@): shows what would change, in the job summary
+#   2. apply  only if the plan has changes; runs in the GitHub environment `infrastructure`, which
+#             allows main only and waits for a required reviewer to approve; only jobs in that
+#             environment may use github-apply@ (owner rights, infra/terraform/gke/github-wif.tf)
+# The plan in the pull request (terraform-plan.yml) is the review; this is the execution.
+name: Terraform apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - infra/terraform/**
+      - .github/workflows/terraform-apply.yml
+  # Re-run by hand, e.g. to repair drift
+  workflow_dispatch:
+
+# Never two applies on the same state at once
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token for Workload Identity Federation
+
+env:
+  WORKLOAD_IDENTITY_PROVIDER: projects/343479552803/locations/global/workloadIdentityPools/github/providers/github
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: infra/terraform/gke
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: github-plan@todo-gke-514711.iam.gserviceaccount.com
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.1
+          terraform_wrapper: false
+
+      - run: terraform init -input=false
+
+      # -detailed-exitcode: 0 = no changes, 2 = changes, 1 = error
+      - name: terraform plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -input=false -lock=false -no-color -detailed-exitcode > plan.txt 2>&1
+          code=$?
+          set -e
+          cat plan.txt
+          {
+            echo '### Terraform plan'
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          if [ "$code" -eq 2 ]; then echo changes=true; else echo changes=false; fi >> "$GITHUB_OUTPUT"
+
+  apply:
+    needs: plan
+    if: needs.plan.outputs.changes == 'true'
+    runs-on: ubuntu-24.04
+    # Waits here for the approval; the reviewer reads the plan of the job above first
+    environment: infrastructure
+    defaults:
+      run:
+        working-directory: infra/terraform/gke
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: github-apply@todo-gke-514711.iam.gserviceaccount.com
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.1
+          terraform_wrapper: false
+
+      - run: terraform init -input=false
+
+      # Plans again with the state lock held, then applies exactly that plan. If someone changed
+      # the infrastructure since the approval, the difference shows up in this log.
+      - run: terraform apply -input=false -auto-approve -no-color
