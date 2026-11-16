@@ -10,6 +10,9 @@ locals {
     "iam.googleapis.com",                # service accounts, Workload Identity pools
     "iamcredentials.googleapis.com",     # short-lived service account tokens (GitHub Actions)
     "sts.googleapis.com",                # exchanges GitHub's OIDC token for a Google token
+    # Project metadata and IAM policy. Locally gcloud's own quota project covers these calls;
+    # a service account (CI) is billed to this project, where the API must be on.
+    "cloudresourcemanager.googleapis.com",
   ]
 }
 
