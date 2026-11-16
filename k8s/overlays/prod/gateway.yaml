@@ -1,0 +1,27 @@
+# The entry point from the internet. GKE's Gateway controller turns this object into a Google
+# global external Application Load Balancer. The HTTPRoute in base attaches to it by name, exactly
+# as locally; only the implementation differs (overlays/local uses Envoy Gateway).
+#
+# Created by Terraform (infra/terraform/gke/api-endpoint.tf) and referenced by name here:
+#   - the static IP `api-gateway` (DNS api.tododan.life points to it)
+#   - the certificate map `api` with the Google-managed certificate of api.tododan.life
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: api-gateway
+  annotations:
+    networking.gke.io/certmap: api
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  addresses:
+    - type: NamedAddress
+      value: api-gateway
+  # HTTPS only: the clients (the frontend, k6, curl) always call https://, so there is no port 80
+  # listener and no redirect to maintain.
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: Same

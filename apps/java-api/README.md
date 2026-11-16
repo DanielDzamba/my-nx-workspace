@@ -87,13 +87,13 @@ docker build -t java-api -f Dockerfile ../..  # image only; context is the repo 
 
 ## Deployment
 
-| Part       | Host                                                                          | Config                               |
-| ---------- | ----------------------------------------------------------------------------- | ------------------------------------ |
-| Frontend   | GitHub Pages: https://danieldzamba.github.io/my-nx-workspace/                 | `.github/workflows/deploy-pages.yml` |
-| java-api   | Render (free web service, Docker): https://danieldzamba-java-api.onrender.com | `render.yaml` (Blueprint)            |
-| PostgreSQL | Neon (free, AWS eu-central-1)                                                 | env vars in the Render dashboard     |
-| RabbitMQ   | CloudAMQP (free plan "Little Lemur", EU region)                               | env var in the Render dashboard      |
-| Redis      | Render Key Value (free, Frankfurt, internal only, no persistence)             | `render.yaml` (Blueprint)            |
+| Part       | Host                                                                             | Config                               |
+| ---------- | -------------------------------------------------------------------------------- | ------------------------------------ |
+| Frontend   | GitHub Pages: https://danieldzamba.github.io/my-nx-workspace/                    | `.github/workflows/deploy-pages.yml` |
+| java-api   | GKE (`k8s/overlays/prod`): https://api.tododan.life (Render until it is removed) | `npx nx run k8s:prod-deploy`         |
+| PostgreSQL | Neon (free, AWS eu-central-1)                                                    | env vars in the Render dashboard     |
+| RabbitMQ   | CloudAMQP (free plan "Little Lemur", EU region)                                  | env var in the Render dashboard      |
+| Redis      | Render Key Value (free, Frankfurt, internal only, no persistence)                | `render.yaml` (Blueprint)            |
 
 - Render deploys a commit on `main` once CI has passed on it (`autoDeployTrigger: checksPass`).
 - The free service sleeps after 15 minutes without traffic; the first request then waits for the app to start (up to about a minute). Neon suspends the database after 5 idle minutes and resumes it on the next connection.

@@ -35,6 +35,18 @@
         "command": "node tools/scripts/k8s-local.mjs deploy"
       }
     },
+    "prod-images": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/k8s-prod.mjs prod-images"
+      }
+    },
+    "prod-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/k8s-prod.mjs prod-deploy"
+      }
+    },
     "down": {
       "executor": "nx:run-commands",
       "options": {

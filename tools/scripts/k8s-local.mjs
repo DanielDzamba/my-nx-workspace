@@ -9,6 +9,9 @@ import { existsSync, readdirSync } from 'node:fs';
 import { delimiter, join, resolve } from 'node:path';
 
 const CLUSTER = 'todo';
+// kind names its context kind-<cluster>. Named on every kubectl call, so a current context that
+// points at GKE (tools/scripts/k8s-prod.mjs) never receives the local overlay.
+const CONTEXT = `kind-${CLUSTER}`;
 const NAMESPACE = 'todo';
 // Envoy Gateway release: its install.yaml also brings the Gateway API CRDs
 const ENVOY_GATEWAY_VERSION = 'v1.9.3';
@@ -51,12 +54,16 @@ const commands = {
   cluster() {
     run('kind', ['create', 'cluster', '--config', 'k8s/kind-config.yaml']);
     run('kubectl', [
+      '--context',
+      CONTEXT,
       'apply',
       '--server-side',
       '-f',
       `https://github.com/envoyproxy/gateway/releases/download/${ENVOY_GATEWAY_VERSION}/install.yaml`,
     ]);
     run('kubectl', [
+      '--context',
+      CONTEXT,
       'wait',
       '--namespace',
       'envoy-gateway-system',
@@ -82,7 +89,7 @@ const commands = {
   },
 
   deploy() {
-    run('kubectl', ['apply', '-k', 'k8s/overlays/local']);
+    run('kubectl', ['--context', CONTEXT, 'apply', '-k', 'k8s/overlays/local']);
     for (const workload of [
       'statefulset/java-api-postgres',
       'statefulset/notification-postgres',
@@ -92,6 +99,8 @@ const commands = {
       'deployment/notification-service',
     ]) {
       run('kubectl', [
+        '--context',
+        CONTEXT,
         'rollout',
         'status',
         '--namespace',
@@ -107,6 +116,7 @@ const commands = {
   },
 
   lint() {
+    // Rendering needs no cluster, so no context (CI has none)
     run('kubectl', ['kustomize', 'k8s/overlays/local'], { quiet: true });
   },
 };
