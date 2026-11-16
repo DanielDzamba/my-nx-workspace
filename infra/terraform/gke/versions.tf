@@ -14,6 +14,16 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 7.0"
     }
+    # Installs cluster add-ons (External Secrets Operator) from their Helm charts
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 3.0"
+    }
+    # Kubernetes RBAC for the CI identities (github-wif.tf)
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 3.0"
+    }
   }
 }
 

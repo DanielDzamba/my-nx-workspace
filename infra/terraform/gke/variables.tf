@@ -14,6 +14,11 @@ variable "domain" {
   type        = string
 }
 
+variable "github_repository" {
+  description = "owner/name of the GitHub repository whose Actions may log in (Workload Identity Federation)."
+  type        = string
+}
+
 variable "zone" {
   description = "Zone of the cluster. A zonal cluster has its control plane fee covered by the GKE free tier."
   type        = string

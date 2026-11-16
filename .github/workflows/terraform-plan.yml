@@ -1,0 +1,70 @@
+# terraform plan for pull requests that change infra/terraform: the plan is posted as a PR comment,
+# so the review covers what will change in Google Cloud, not only the code. The identity
+# github-plan@ is read-only (infra/terraform/gke/github-wif.tf); apply stays a manual step
+# (infra/terraform/gke/README.md).
+name: Terraform plan
+
+on:
+  pull_request:
+    paths:
+      - infra/terraform/**
+      - .github/workflows/terraform-plan.yml
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token for Workload Identity Federation
+  pull-requests: write # the plan comment
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: infra/terraform/gke
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/343479552803/locations/global/workloadIdentityPools/github/providers/github
+          service_account: github-plan@todo-gke-514711.iam.gserviceaccount.com
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.1
+          # Plain output for the comment
+          terraform_wrapper: false
+
+      - run: terraform init -input=false
+
+      - run: terraform fmt -check -recursive
+
+      # -lock=false: the read-only identity may not write the lock file; a plan changes nothing
+      - name: terraform plan
+        id: plan
+        run: |
+          set -o pipefail
+          terraform plan -input=false -lock=false -no-color | tee plan.txt
+
+      - name: Comment the plan on the pull request
+        if: always() && steps.plan.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          OUTCOME: ${{ steps.plan.outcome }}
+        run: |
+          {
+            echo "### Terraform plan (\`infra/terraform/gke\`): $OUTCOME"
+            echo
+            grep -E '^(Plan:|No changes)' plan.txt || true
+            echo
+            echo '<details><summary>Full plan</summary>'
+            echo
+            echo '```'
+            # A PR comment holds at most 65536 characters
+            tail -c 60000 plan.txt
+            echo '```'
+            echo '</details>'
+          } > comment.md
+          # One comment per PR, updated on every push
+          gh pr comment "$PR" --body-file comment.md --edit-last --create-if-none
