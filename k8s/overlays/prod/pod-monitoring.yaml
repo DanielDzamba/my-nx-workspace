@@ -1,0 +1,41 @@
+# Managed Service for Prometheus (enabled in infra/terraform/gke/cluster.tf) scrapes the pods
+# selected here: GET /actuator/prometheus on the http port, every minute. The endpoint is turned
+# on by the ConfigMaps in kustomization.yaml and is not routed by the Gateway, so only the
+# collectors inside the cluster read it.
+#
+# Billing is per ingested sample, and Spring Boot exposes several hundred series per pod. Keep only
+# what the dashboards and load tests use: request rate/latency/errors, the connection pool, JVM
+# memory and GC, threads, CPU.
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: java-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: java-api
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 60s
+      metricRelabeling:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: http_server_requests_seconds_.*|hikaricp_connections.*|jvm_memory_(used|max|committed)_bytes|jvm_gc_pause_seconds_.*|jvm_threads_live_threads|process_cpu_usage|tomcat_threads_.*
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: notification-service
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 60s
+      metricRelabeling:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: http_server_requests_seconds_.*|hikaricp_connections.*|jvm_memory_(used|max|committed)_bytes|jvm_gc_pause_seconds_.*|jvm_threads_live_threads|process_cpu_usage|tomcat_threads_.*

@@ -12,6 +12,7 @@ resources:
   - health-checks.yaml
   - redis.yaml
   - external-secrets.yaml
+  - pod-monitoring.yaml
 
 # Images in Artifact Registry. The tag is the commit SHA of the build; tools/scripts/k8s-prod.mjs
 # replaces `deploy-time` with it when rendering, so this file never needs a commit per release.
@@ -24,13 +25,19 @@ images:
     newTag: deploy-time
 
 # Not secret. Hash suffix in the name: a changed value rolls the pods (as in overlays/local).
+# MANAGEMENT_*: /actuator/prometheus for pod-monitoring.yaml, and request latency counted in a few
+# fixed buckets (le=...), so PromQL can compute percentiles without hundreds of histogram series.
 configMapGenerator:
   - name: java-api-config
     literals:
       - SPRING_DATA_REDIS_URL=redis://redis:6379
       - APP_CORS_ALLOWED_ORIGINS=https://danieldzamba.github.io
       - SPRINGDOC_SWAGGER_UI_ENABLED=false
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,prometheus
+      - MANAGEMENT_METRICS_DISTRIBUTION_SLO_HTTP_SERVER_REQUESTS=50ms,100ms,250ms,500ms,1s,2s,5s
   - name: notification-service-config
     literals:
       - APP_CORS_ALLOWED_ORIGINS=https://danieldzamba.github.io
       - SPRINGDOC_SWAGGER_UI_ENABLED=false
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,prometheus
+      - MANAGEMENT_METRICS_DISTRIBUTION_SLO_HTTP_SERVER_REQUESTS=50ms,100ms,250ms,500ms,1s,2s,5s
