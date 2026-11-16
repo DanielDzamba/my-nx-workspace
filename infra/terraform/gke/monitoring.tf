@@ -84,6 +84,12 @@ resource "kubernetes_service_v1" "prometheus_frontend" {
       target_port = "web"
     }
   }
+
+  # GKE adds this annotation to every Service itself; without the ignore every plan would show a
+  # change that removes it, and GKE would add it again right after the apply.
+  lifecycle {
+    ignore_changes = [metadata[0].annotations["cloud.google.com/neg"]]
+  }
 }
 
 # --- Grafana ---------------------------------------------------------------------------------

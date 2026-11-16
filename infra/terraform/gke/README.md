@@ -7,7 +7,7 @@ Kubernetes objects (Deployments, Services, routes) are not here; they live in `k
 | ---------------------- | ------------------------------------------------------------------------- |
 | `versions.tf`          | Terraform + provider versions, remote state in GCS                        |
 | `apis.tf`              | Google APIs the project needs (Compute, GKE, Artifact Registry)           |
-| `cluster.tf`           | Zonal GKE Standard cluster `todo` + node pool `spot` (2–3 Spot e2-medium) |
+| `cluster.tf`           | Zonal GKE Standard cluster `todo` + node pool `spot` (2–5 Spot e2-medium) |
 | `iam.tf`               | Least-privilege service account for the nodes                             |
 | `artifact-registry.tf` | Docker repository `todo`, keeps the 10 newest versions of each image      |
 | `dns.tf`               | Cloud DNS zone of the domain (nameservers set once at the registrar)      |
@@ -36,9 +36,10 @@ through `prometheus-frontend`, which adds Google credentials (monitoring.viewer)
   zone outage takes the cluster down, acceptable here; production would be regional.
 - **Spot nodes:** 60–90 % cheaper, Google may take a node back at any time. The apps survive with
   several replicas spread over nodes (`topologySpreadConstraints` in `k8s/base`).
-- **e2-medium, 2–3 nodes:** a pod requests 512Mi, a node leaves ~2.7 GiB for pods, so 2 nodes hold
-  the 5 pods; the third is room for rolling updates, a lost node and HPA. Smaller machines waste
-  most of their memory on per-node overhead.
+- **e2-medium, 2–5 nodes:** a node leaves ~940m CPU and ~2.7 GiB for pods. Smaller machines waste
+  most of their memory on per-node overhead. e2 is shared-core: 2 vCPUs in bursts, about one core
+  sustained, which is what limited the first load test (`tools/load-test`). java-api requests
+  500m CPU, so each of its pods (2–5, HPA) needs its own node; the extra nodes exist only under load.
 - **30 GB disks:** the default 100 GB is paid even when empty.
 - **Own node service account:** the default one has Editor on the whole project.
 - **`deletion_protection = false`:** so the cluster can be destroyed at the end of the trial.
