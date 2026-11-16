@@ -102,12 +102,28 @@ resource "google_project_iam_member" "github_plan" {
 }
 
 # Helm keeps its release records in Secrets of the release namespace, and `roles/viewer` cannot
-# read Secrets. Let the plan identity read Secrets in that one namespace only (Helm metadata, not
-# the app's credentials, which live in the namespace todo).
+# read Secrets. Let the plan identity read Secrets in the add-on namespaces only (Helm metadata;
+# the app's credentials live in the namespace todo, out of its reach).
+locals {
+  helm_namespaces = toset([helm_release.external_secrets.namespace, helm_release.grafana.namespace])
+}
+
+moved {
+  from = kubernetes_role_v1.helm_release_reader
+  to   = kubernetes_role_v1.helm_release_reader["external-secrets"]
+}
+
+moved {
+  from = kubernetes_role_binding_v1.github_plan_helm
+  to   = kubernetes_role_binding_v1.github_plan_helm["external-secrets"]
+}
+
 resource "kubernetes_role_v1" "helm_release_reader" {
+  for_each = local.helm_namespaces
+
   metadata {
     name      = "helm-release-reader"
-    namespace = helm_release.external_secrets.namespace
+    namespace = each.value
   }
   rule {
     api_groups = [""]
@@ -117,14 +133,16 @@ resource "kubernetes_role_v1" "helm_release_reader" {
 }
 
 resource "kubernetes_role_binding_v1" "github_plan_helm" {
+  for_each = local.helm_namespaces
+
   metadata {
     name      = "github-plan-helm-release-reader"
-    namespace = helm_release.external_secrets.namespace
+    namespace = each.value
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "Role"
-    name      = kubernetes_role_v1.helm_release_reader.metadata[0].name
+    name      = kubernetes_role_v1.helm_release_reader[each.key].metadata[0].name
   }
   # GKE maps a Google service account to a Kubernetes user named by its email
   subject {

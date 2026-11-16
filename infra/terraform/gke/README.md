@@ -15,7 +15,20 @@ Kubernetes objects (Deployments, Services, routes) are not here; they live in `k
 | `secrets.tf`           | Secret Manager secrets of the apps (no values) and who may read them      |
 | `external-secrets.tf`  | External Secrets Operator (Helm) copying them into Kubernetes Secrets     |
 | `github-wif.tf`        | Keyless login of GitHub Actions: `github-deploy` (main), `github-plan`    |
-| `terraform.tfvars`     | Values for this environment (project id; no secrets)                      |
+| `monitoring.tf`        | Grafana + Google's Prometheus frontend; dashboard in `dashboards/`        |
+
+## Grafana
+
+Not public and without a login: reaching it needs cluster access, which is the access control.
+
+```sh
+kubectl --context gke_todo-gke-514711_europe-west3-a_todo -n monitoring port-forward svc/grafana 3000:80
+```
+
+Then http://localhost:3000, dashboard _Todo – services_ (`dashboards/todo.json`; edit the file, not
+the UI, or the next deploy overwrites the change). Data source: Managed Service for Prometheus
+through `prometheus-frontend`, which adds Google credentials (monitoring.viewer) to the queries.
+| `terraform.tfvars` | Values for this environment (project id; no secrets) |
 
 ## Decisions
 
