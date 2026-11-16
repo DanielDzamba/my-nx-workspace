@@ -7,6 +7,19 @@ output "image_repository" {
   value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.todo.repository_id}"
 }
 
+output "dns_name_servers" {
+  description = "Set these as the domain's nameservers at the registrar (Porkbun)."
+  value       = google_dns_managed_zone.main.name_servers
+}
+
+output "api_url" {
+  value = "https://${local.api_host}"
+}
+
+output "api_ip" {
+  value = google_compute_global_address.api.address
+}
+
 output "get_credentials" {
   description = "Points kubectl at the cluster."
   value       = "gcloud container clusters get-credentials ${google_container_cluster.todo.name} --zone ${var.zone} --project ${var.project_id}"

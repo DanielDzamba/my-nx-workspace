@@ -1,0 +1,37 @@
+# The Google load balancer checks every pod itself, independently of the Kubernetes probes. By
+# default it asks GET / on the serving port, which Spring Security answers with 401, so every pod
+# would count as unhealthy and the load balancer would answer 503. Point it at the readiness
+# endpoint instead (same meaning as the readinessProbe: "may I get traffic?").
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: java-api
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        portSpecification: USE_FIXED_PORT
+        port: 8080
+        requestPath: /actuator/health/readiness
+  targetRef:
+    group: ''
+    kind: Service
+    name: java-api
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: notification-service
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        portSpecification: USE_FIXED_PORT
+        port: 8081
+        requestPath: /actuator/health/readiness
+  targetRef:
+    group: ''
+    kind: Service
+    name: notification-service

@@ -9,6 +9,11 @@ variable "region" {
   default     = "europe-west3"
 }
 
+variable "domain" {
+  description = "Domain bought at a registrar (Porkbun) and delegated to Cloud DNS."
+  type        = string
+}
+
 variable "zone" {
   description = "Zone of the cluster. A zonal cluster has its control plane fee covered by the GKE free tier."
   type        = string

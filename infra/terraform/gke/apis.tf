@@ -1,9 +1,11 @@
 # A new project has most Google APIs turned off. Everything else in this folder depends on these.
 locals {
   apis = [
-    "compute.googleapis.com",          # VMs (nodes), static IPs, load balancers
-    "container.googleapis.com",        # GKE
-    "artifactregistry.googleapis.com", # container images
+    "compute.googleapis.com",            # VMs (nodes), static IPs, load balancers
+    "container.googleapis.com",          # GKE
+    "artifactregistry.googleapis.com",   # container images
+    "dns.googleapis.com",                # Cloud DNS zone of the domain
+    "certificatemanager.googleapis.com", # HTTPS certificate of api.<domain>
   ]
 }
 

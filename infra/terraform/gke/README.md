@@ -10,6 +10,8 @@ Kubernetes objects (Deployments, Services, routes) are not here; they live in `k
 | `cluster.tf`           | Zonal GKE Standard cluster `todo` + node pool `spot` (2–3 Spot e2-medium) |
 | `iam.tf`               | Least-privilege service account for the nodes                             |
 | `artifact-registry.tf` | Docker repository `todo`, keeps the 10 newest versions of each image      |
+| `dns.tf`               | Cloud DNS zone of the domain (nameservers set once at the registrar)      |
+| `api-endpoint.tf`      | Static IP, `api.<domain>` record, Google-managed certificate + map        |
 | `terraform.tfvars`     | Values for this environment (project id; no secrets)                      |
 
 ## Decisions

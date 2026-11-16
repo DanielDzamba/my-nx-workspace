@@ -56,3 +56,7 @@ apps/angular-demo/src/app/domains/*/data/api
 *.tfstate.*
 crash.log
 
+
+# Production secrets for k8s/overlays/prod (only the *.example files are committed)
+k8s/overlays/prod/*.secrets.env
+
