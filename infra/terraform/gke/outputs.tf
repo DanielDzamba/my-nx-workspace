@@ -29,6 +29,10 @@ output "github_deploy_service_account" {
   value = google_service_account.github_deploy.email
 }
 
+output "github_apply_service_account" {
+  value = google_service_account.github_apply.email
+}
+
 output "github_plan_service_account" {
   value = google_service_account.github_plan.email
 }

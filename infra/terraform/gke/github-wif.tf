@@ -54,6 +54,31 @@ resource "google_project_iam_member" "github_deploy_gke" {
   member  = "serviceAccount:${google_service_account.github_deploy.email}"
 }
 
+# --- Apply: only jobs in the GitHub environment `infrastructure` -----------------------------
+# terraform apply creates service accounts, changes IAM and may delete the cluster, so it needs
+# owner rights. Two locks keep them out of reach of ordinary workflows:
+#   - Google: only tokens whose subject is the environment `infrastructure` may use this account
+#   - GitHub: that environment accepts jobs from main only, and each job waits until a required
+#     reviewer approves it (settings in .github/workflows/terraform-apply.yml)
+# Bootstrap: this account cannot create itself, so this block was applied once by hand.
+
+resource "google_service_account" "github_apply" {
+  account_id   = "github-apply"
+  display_name = "GitHub Actions: terraform apply (environment infrastructure, approved)"
+}
+
+resource "google_service_account_iam_member" "github_apply_environment_only" {
+  service_account_id = google_service_account.github_apply.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principal://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/subject/repo:${var.github_repository}:environment:infrastructure"
+}
+
+resource "google_project_iam_member" "github_apply" {
+  project = var.project_id
+  role    = "roles/owner"
+  member  = "serviceAccount:${google_service_account.github_apply.email}"
+}
+
 # --- Plan: any workflow of the repository (pull requests), read-only --------------------------
 
 resource "google_service_account" "github_plan" {
