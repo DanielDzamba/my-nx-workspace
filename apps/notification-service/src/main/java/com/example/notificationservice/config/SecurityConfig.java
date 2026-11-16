@@ -32,6 +32,9 @@ public class SecurityConfig {
 			.authorizeHttpRequests((requests) -> requests
 				// Health check and liveness/readiness probes call these without a token
 				.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+				// Scraped by Prometheus inside the cluster. Exposed only where the environment turns it
+				// on (k8s/overlays/prod), and the Gateway routes only /api/**, so not reachable from outside.
+				.requestMatchers("/actuator/prometheus").permitAll()
 				// Spring Boot renders error responses (e.g. 400, 404) on /error
 				.requestMatchers("/error").permitAll()
 				// The API contract and Swagger UI; the API calls made from Swagger UI still need a token
