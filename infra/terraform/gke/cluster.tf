@@ -44,15 +44,16 @@ resource "google_container_node_pool" "spot" {
   cluster  = google_container_cluster.todo.id
   location = var.zone
 
-  # Min 2: replicas spread over two machines. Max 3: room for a rolling update, a lost node and
-  # HPA, and a hard cap on the cost.
+  # Min 2: replicas spread over two machines. Max 5: an e2-medium leaves ~940m CPU for pods and
+  # java-api requests 500m (measured under load), so every java-api pod the HPA adds (up to 5)
+  # needs its own node. Extra nodes run only while the load lasts; 5 is the hard cap on the cost.
   # The pool starts with initial_node_count nodes (default 1); the autoscaler does not add nodes
   # just to reach min_node_count without pending pods, so start with the minimum.
   initial_node_count = 2
 
   autoscaling {
     min_node_count = 2
-    max_node_count = 3
+    max_node_count = 5
   }
 
   management {
