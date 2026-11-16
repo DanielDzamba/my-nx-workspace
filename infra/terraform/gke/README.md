@@ -12,6 +12,9 @@ Kubernetes objects (Deployments, Services, routes) are not here; they live in `k
 | `artifact-registry.tf` | Docker repository `todo`, keeps the 10 newest versions of each image      |
 | `dns.tf`               | Cloud DNS zone of the domain (nameservers set once at the registrar)      |
 | `api-endpoint.tf`      | Static IP, `api.<domain>` record, Google-managed certificate + map        |
+| `secrets.tf`           | Secret Manager secrets of the apps (no values) and who may read them      |
+| `external-secrets.tf`  | External Secrets Operator (Helm) copying them into Kubernetes Secrets     |
+| `github-wif.tf`        | Keyless login of GitHub Actions: `github-deploy` (main), `github-plan`    |
 | `terraform.tfvars`     | Values for this environment (project id; no secrets)                      |
 
 ## Decisions
@@ -58,6 +61,15 @@ kubectl get nodes
 `kubectl` then points at GKE. Back to the local cluster: `kubectl config use-context kind-todo`.
 
 Never change these resources in the console: the next `apply` reverts the change (drift).
+
+### Workflow
+
+1. Change the `.tf` files on a branch and open a pull request.
+2. `.github/workflows/terraform-plan.yml` runs `terraform plan` as the read-only `github-plan@`
+   (Workload Identity Federation, no key) and posts the plan as a PR comment; review it for `-` and
+   `-/+`.
+3. After the merge, apply by hand from `main` (`terraform apply`). Apply is not automated: it needs
+   owner-like rights, which no CI identity has.
 
 ## Cost
 

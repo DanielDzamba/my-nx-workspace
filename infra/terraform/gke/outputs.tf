@@ -20,6 +20,19 @@ output "api_ip" {
   value = google_compute_global_address.api.address
 }
 
+output "github_workload_identity_provider" {
+  description = "For google-github-actions/auth in .github/workflows (not a secret)."
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "github_deploy_service_account" {
+  value = google_service_account.github_deploy.email
+}
+
+output "github_plan_service_account" {
+  value = google_service_account.github_plan.email
+}
+
 output "get_credentials" {
   description = "Points kubectl at the cluster."
   value       = "gcloud container clusters get-credentials ${google_container_cluster.todo.name} --zone ${var.zone} --project ${var.project_id}"

@@ -1,0 +1,68 @@
+# Build and deploy java-api and notification-service to GKE on every push to main that touches
+# them (k8s/overlays/prod/README.md). Code reaches main only through a pull request whose CI passed
+# (ruleset), so this workflow does not run the tests again.
+#
+# Login without a key: GitHub signs a short-lived OIDC token for this job, Google exchanges it for
+# credentials of github-deploy@, which only workflows on main may use (infra/terraform/gke/github-wif.tf).
+name: Deploy to GKE
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/java-api/**
+      - apps/notification-service/**
+      - api-contract/**
+      - k8s/base/**
+      - k8s/overlays/prod/**
+      - tools/scripts/k8s-prod.mjs
+      - .github/workflows/deploy-gke.yml
+  # Redeploy by hand (Actions tab), e.g. after a rollback of a bad commit
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits instead of cancelling a half-done rollout
+concurrency:
+  group: deploy-gke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # the OIDC token for Workload Identity Federation
+
+jobs:
+  deploy:
+    # Same pinned runner as ci.yml
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://api.tododan.life
+    steps:
+      - uses: actions/checkout@v4
+
+      # k8s-prod.mjs uses import.meta.dirname (Node 20.11+)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: google-github-actions/auth@v3
+        with:
+          # Outputs of infra/terraform/gke (identifiers, not secrets)
+          workload_identity_provider: projects/343479552803/locations/global/workloadIdentityPools/github/providers/github
+          service_account: github-deploy@todo-gke-514711.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Docker login to Artifact Registry
+        run: gcloud auth configure-docker europe-west3-docker.pkg.dev --quiet
+
+      # Writes a kubeconfig context named like the local one (gke_<project>_<zone>_<cluster>)
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: todo
+          location: europe-west3-a
+
+      - name: Build and push images (tag = commit SHA)
+        run: node tools/scripts/k8s-prod.mjs prod-images
+
+      - name: Deploy
+        run: node tools/scripts/k8s-prod.mjs prod-deploy
