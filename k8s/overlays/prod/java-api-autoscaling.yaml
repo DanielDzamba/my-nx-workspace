@@ -1,0 +1,34 @@
+# Horizontal Pod Autoscaler: the number of java-api pods follows the CPU load (2 to 5).
+#
+# The percentage is measured against the CPU *request*: usage / request. The first load test
+# (tools/load-test) showed 0.5–0.8 cores per pod under load, while base requested only 100m, so
+# the request is raised to 500m in kustomization.yaml; with 100m the HPA would see 800 % and
+# scheduler would put several busy pods on one node (which is what slowed the test down).
+#
+# The Deployment in this overlay has no `replicas` (removed in kustomization.yaml): a value there
+# would be set again by every deploy and fight with the HPA.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: java-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: java-api
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    # Add pods quickly when the load rises (a new pod needs ~1 min to start, a new node ~2 min)
+    scaleUp:
+      stabilizationWindowSeconds: 0
+    # Remove them only after 5 minutes of lower load, so short dips do not cause churn
+    scaleDown:
+      stabilizationWindowSeconds: 300

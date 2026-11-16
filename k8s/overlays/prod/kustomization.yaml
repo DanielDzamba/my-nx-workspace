@@ -13,6 +13,20 @@ resources:
   - redis.yaml
   - external-secrets.yaml
   - pod-monitoring.yaml
+  - java-api-autoscaling.yaml
+
+# java-api is scaled by the HPA (java-api-autoscaling.yaml): no fixed replica count, and a CPU
+# request that matches the measured usage under load.
+patches:
+  - target:
+      kind: Deployment
+      name: java-api
+    patch: |-
+      - op: remove
+        path: /spec/replicas
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 500m
 
 # Images in Artifact Registry. The tag is the commit SHA of the build; tools/scripts/k8s-prod.mjs
 # replaces `deploy-time` with it when rendering, so this file never needs a commit per release.

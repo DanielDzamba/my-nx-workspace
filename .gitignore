@@ -57,3 +57,7 @@ apps/angular-demo/src/app/domains/*/data/api
 crash.log
 
 
+
+# Load test credentials (tools/load-test/README.md)
+tools/load-test/secrets.env
+
