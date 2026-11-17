@@ -1,0 +1,23 @@
+# PodDisruptionBudgets: during *planned* disruptions (node upgrades, node pool changes, the Cluster
+# Autoscaler removing a node) Kubernetes evicts pods one at a time and keeps at least one replica of
+# each service running. They do not help against unplanned ones (a Spot node taken away); for those
+# the replicas are spread over nodes (topologySpreadConstraints in the Deployments).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: java-api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: java-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
