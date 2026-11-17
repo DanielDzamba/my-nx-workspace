@@ -22,7 +22,7 @@ jobs:
     # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.57 cannot install Chromium on.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           filter: tree:0
           fetch-depth: 0
@@ -34,7 +34,7 @@ jobs:
       # - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
 
       # Cache node_modules
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: 'npm'
@@ -42,7 +42,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
 
       # JDK for apps/java-api (Maven wrapper handles Maven itself)
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -52,13 +52,13 @@ jobs:
       # that mvnw downloads (~/.m2/wrapper) would otherwise come from Maven Central on every run,
       # and one failed download fails the build. The key changes with the Maven version.
       - name: Cache Maven wrapper distribution
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/wrapper
           key: maven-wrapper-${{ hashFiles('apps/*/.mvn/wrapper/maven-wrapper.properties') }}
 
       # Sets NX_BASE / NX_HEAD so `nx affected` only runs projects the PR touches
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@v5
 
       # A contract change must not break existing clients (removed endpoint or field, new required
       # parameter, changed type, ...). Compares api-contract/openapi.yaml with the PR's base branch;
@@ -116,7 +116,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - run: npx nx affected -t e2e -- --project=chromium
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
