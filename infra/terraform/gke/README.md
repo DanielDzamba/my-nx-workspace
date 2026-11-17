@@ -3,19 +3,19 @@
 Google Cloud resources for running the stack on GKE: the cluster, its nodes and the image registry.
 Kubernetes objects (Deployments, Services, routes) are not here; they live in `k8s/`.
 
-| File                   | What                                                                      |
-| ---------------------- | ------------------------------------------------------------------------- |
-| `versions.tf`          | Terraform + provider versions, remote state in GCS                        |
-| `apis.tf`              | Google APIs the project needs (Compute, GKE, Artifact Registry)           |
-| `cluster.tf`           | Zonal GKE Standard cluster `todo` + node pool `spot` (2–5 Spot e2-medium) |
-| `iam.tf`               | Least-privilege service account for the nodes                             |
-| `artifact-registry.tf` | Docker repository `todo`, keeps the 10 newest versions of each image      |
-| `dns.tf`               | Cloud DNS zone of the domain (nameservers set once at the registrar)      |
-| `api-endpoint.tf`      | Static IP, `api.<domain>` record, Google-managed certificate + map        |
-| `secrets.tf`           | Secret Manager secrets of the apps (no values) and who may read them      |
-| `external-secrets.tf`  | External Secrets Operator (Helm) copying them into Kubernetes Secrets     |
-| `github-wif.tf`        | Keyless login of GitHub Actions: `github-deploy` (main), `github-plan`    |
-| `monitoring.tf`        | Grafana + Google's Prometheus frontend; dashboard in `dashboards/`        |
+| File                   | What                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `versions.tf`          | Terraform + provider versions, remote state in GCS                            |
+| `apis.tf`              | Google APIs the project needs (Compute, GKE, Artifact Registry)               |
+| `cluster.tf`           | Zonal GKE Standard cluster `todo` + node pool `spot` (2–3 Spot e2-standard-2) |
+| `iam.tf`               | Least-privilege service account for the nodes                                 |
+| `artifact-registry.tf` | Docker repository `todo`, keeps the 10 newest versions of each image          |
+| `dns.tf`               | Cloud DNS zone of the domain (nameservers set once at the registrar)          |
+| `api-endpoint.tf`      | Static IP, `api.<domain>` record, Google-managed certificate + map            |
+| `secrets.tf`           | Secret Manager secrets of the apps (no values) and who may read them          |
+| `external-secrets.tf`  | External Secrets Operator (Helm) copying them into Kubernetes Secrets         |
+| `github-wif.tf`        | Keyless login of GitHub Actions: `github-deploy` (main), `github-plan`        |
+| `monitoring.tf`        | Grafana + Google's Prometheus frontend; dashboard in `dashboards/`            |
 
 ## Grafana
 
@@ -36,10 +36,12 @@ through `prometheus-frontend`, which adds Google credentials (monitoring.viewer)
   zone outage takes the cluster down, acceptable here; production would be regional.
 - **Spot nodes:** 60–90 % cheaper, Google may take a node back at any time. The apps survive with
   several replicas spread over nodes (`topologySpreadConstraints` in `k8s/base`).
-- **e2-medium, 2–5 nodes:** a node leaves ~940m CPU and ~2.7 GiB for pods. Smaller machines waste
-  most of their memory on per-node overhead. e2 is shared-core: 2 vCPUs in bursts, about one core
-  sustained, which is what limited the first load test (`tools/load-test`). java-api requests
-  500m CPU, so each of its pods (2–5, HPA) needs its own node; the extra nodes exist only under load.
+- **e2-standard-2, 2–3 nodes:** 2 dedicated vCPUs and ~1.9 CPU for pods per node, room for three
+  java-api pods (500m each, HPA 2–5) next to the small ones. The cluster started on e2-medium, which
+  the load tests (`tools/load-test`) outgrew: shared-core (about one core sustained) and ~940m for
+  pods, so one java-api per node; the spare CPU was fragmented across five nodes, pods stayed
+  Pending although two nodes idled, and a rollout got stuck. Fewer, bigger nodes also carry less
+  per-node overhead (every node runs its own system pods).
 - **30 GB disks:** the default 100 GB is paid even when empty.
 - **Own node service account:** the default one has Editor on the whole project.
 - **`deletion_protection = false`:** so the cluster can be destroyed at the end of the trial.

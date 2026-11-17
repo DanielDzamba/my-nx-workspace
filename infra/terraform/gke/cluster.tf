@@ -44,16 +44,15 @@ resource "google_container_node_pool" "spot" {
   cluster  = google_container_cluster.todo.id
   location = var.zone
 
-  # Min 2: replicas spread over two machines. Max 5: an e2-medium leaves ~940m CPU for pods and
-  # java-api requests 500m (measured under load), so every java-api pod the HPA adds (up to 5)
-  # needs its own node. Extra nodes run only while the load lasts; 5 is the hard cap on the cost.
+  # Min 2: replicas spread over two machines. Max 3: room for 5 java-api pods (HPA maximum, 500m CPU
+  # each) next to the other pods; the third node runs only while the load lasts.
   # The pool starts with initial_node_count nodes (default 1); the autoscaler does not add nodes
   # just to reach min_node_count without pending pods, so start with the minimum.
   initial_node_count = 2
 
   autoscaling {
     min_node_count = 2
-    max_node_count = 5
+    max_node_count = 3
   }
 
   management {
@@ -62,7 +61,10 @@ resource "google_container_node_pool" "spot" {
   }
 
   node_config {
-    machine_type = "e2-medium" # 2 vCPU (shared), 4 GB; ~2.3 GiB left for pods = 4 pods of 512Mi
+    # 2 dedicated vCPUs, 8 GB; ~1.9 CPU for pods. The load tests (tools/load-test) outgrew e2-medium:
+    # shared-core (about one core sustained) and ~940m for pods, so one java-api (500m) per node and
+    # the spare CPU fragmented across nodes. Fewer, bigger nodes: less per-node overhead.
+    machine_type = "e2-standard-2"
     spot         = true
 
     # The default 100 GB disk is paid even when empty. OS + images + container logs fit into 30 GB.
