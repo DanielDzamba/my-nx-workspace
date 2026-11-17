@@ -25,11 +25,14 @@ spec:
       labels:
         app.kubernetes.io/name: java-api
     spec:
-      # Spread the replicas over the nodes, so losing one node does not take all of them down
+      # Spread the replicas over the nodes, so losing one node does not take all of them down.
+      # DoNotSchedule makes it a rule, not a wish: no node may have 2 more replicas than another
+      # (5 pods on 3 nodes = 2+2+1). A pod that cannot be placed stays Pending until the Cluster
+      # Autoscaler adds a node. (ScheduleAnyway once let a busy node take two replicas.)
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
-          whenUnsatisfiable: ScheduleAnyway
+          whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
               app.kubernetes.io/name: java-api

@@ -6,3 +6,4 @@ resources:
   - java-api.yaml
   - notification-service.yaml
   - api-route.yaml
+  - disruption-budgets.yaml

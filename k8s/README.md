@@ -98,6 +98,10 @@ kubectl -n todo exec -it java-api-postgres-0 -- psql -U java_api java_api
 - **Several replicas:** Flyway takes a database lock, so 3 pods starting at once migrate once; the
   outbox relay uses `FOR UPDATE SKIP LOCKED`, so no event is sent twice; the RabbitMQ consumers of
   the notification-service pods share the queues (competing consumers).
+- **Availability:** the replicas of each service are spread over the nodes as a rule
+  (`topologySpreadConstraints` with `DoNotSchedule`), and a PodDisruptionBudget
+  (`base/disruption-budgets.yaml`) keeps at least one running while nodes are drained for upgrades
+  or scale-down.
 
 ## Experiments
 
